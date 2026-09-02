@@ -1,119 +1,880 @@
 <div class="book-summary">
-    <script type="text/javascript">
-        // Fixes the page links scroll problem on both desktop and mobile browsers
-        function pageScrollToTop(element) {
-            // both mobile and non-mobile
-            $('div.body-inner').animate({scrollTop: 0});
-            $(element).parent().find('li>ul>li').removeClass('active');
-            return true;  // propagate
+
+<style>
+
+/* ============================================================
+   CHAPTER LOCKING STYLES
+   ============================================================ */
+
+.chapter-lock-link {
+    position: relative;
+}
+
+.chapter-lock-link.chapter-locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chapter-lock-link.chapter-locked:hover {
+    text-decoration: none;
+}
+
+.chapter-lock-icon {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 0.9em;
+    vertical-align: baseline;
+}
+
+.chapter-unlocked .chapter-lock-icon {
+    display: none;
+}
+
+.chapter-locked .chapter-lock-icon {
+    display: inline-block;
+}
+
+/*
+Prevents a locked item from looking like a normal active link
+while preserving the surrounding GitBook theme.
+*/
+li.chapter.chapter-is-locked > a {
+    cursor: not-allowed;
+}
+
+</style>
+
+
+<script type="text/javascript">
+
+/* ============================================================
+   EXISTING GITBOOK SCROLL FUNCTIONS
+   ============================================================ */
+
+// Fixes the page links scroll problem on both desktop
+// and mobile browsers.
+function pageScrollToTop(element) {
+
+    $('div.body-inner').animate({
+        scrollTop: 0
+    });
+
+    $(element)
+        .parent()
+        .find('li>ul>li')
+        .removeClass('active');
+
+    return true;
+
+}
+
+
+// Fixes the anchor links scroll problem on mobile browsers.
+function mobilePageScrollToAnchor(element) {
+
+    $(element)
+        .closest('li.chapter')
+        .find('ul>li')
+        .removeClass('active');
+
+    $(element)
+        .parent()
+        .addClass('active');
+
+
+    if ($(document).width() <= 1240) {
+
+        let target =
+            $($(element).attr('href'));
+
+
+        if (target.length) {
+
+            $('div.body-inner').animate({
+
+                scrollTop:
+                    target.get(0).offsetTop
+
+            });
+
         }
-        // Fixes the anchor links scroll problem on mobile browsers
-        function mobilePageScrollToAnchor(element) {
-            $(element).closest('li.chapter').find('ul>li').removeClass('active');
-            $(element).parent().addClass('active');
-            if ($(document).width() <= 1240) {
-                let target = $($(element).attr('href'));
-                if (target.length) {
-                    $('div.body-inner').animate({
-                        scrollTop: target.get(0).offsetTop,
-                    });
-                }
-            }
+
+    }
+
+
+    return true;
+
+}
+
+
+
+/* ============================================================
+   CHAPTER LOCKING SYSTEM
+   ============================================================ */
+
+(function(){
+
+    /*
+    ------------------------------------------------------------
+    STORAGE FORMAT
+
+    Chapter 1 complete:
+        latin-chapter-1-complete = true
+
+    Chapter 2 complete:
+        latin-chapter-2-complete = true
+
+    etc.
+
+    Chapter 1 is always unlocked.
+
+    Chapter N becomes unlocked when Chapter N-1 is complete.
+    ------------------------------------------------------------
+    */
+
+
+    function chapterCompletionKey(chapterNumber) {
+
+        return (
+            "latin-chapter-" +
+            chapterNumber +
+            "-complete"
+        );
+
+    }
+
+
+
+    function isChapterComplete(chapterNumber) {
+
+        return localStorage.getItem(
+            chapterCompletionKey(chapterNumber)
+        ) === "true";
+
+    }
+
+
+
+    function isChapterUnlocked(chapterNumber) {
+
+        /*
+        Chapter 1 is always accessible.
+        */
+
+        if (chapterNumber <= 1) {
             return true;
         }
-    </script>
 
-    <nav role="navigation">
-        <div id="book-search-input" role="search">
-            <input type="text" placeholder="Type to search" />
-        </div>
-        <div id="book-search-input-link" role="search">
-            <a href="{{site.baseurl}}/assets/search.html">Click to Search</a>
-        </div>
-        <ul class="summary">
-            {% if page.url == "/index.html" or page.url == "/" %}
-            <li class="chapter active" data-level="1.1" data-path="{{site.baseurl}}">
-            {% else %}
-            <li class="chapter" data-level="1.1" data-path="{{site.baseurl}}">
-            {% endif %}
-                <a href="{{site.baseurl}}/" onclick="pageScrollToTop(this)">
-                    {{ site.title | escape }}
-                </a>
-                {% if site.toc.enabled %}
-                    {% if site.toc.enabled_index %}
-                        {% include toc.html html=content h_min=site.toc.h_min h_max=site.toc.h_max %}
-                    {% endif %}
-                {% endif %}
-            </li>
 
-            <li class="divider"></li>
+        /*
+        Every later chapter requires completion
+        of the immediately preceding chapter.
+        */
 
-            {% if site.ordered_collections %}
-                {% for label in site.ordered_collections %}
-                    {% assign collection = site.collections | where: "label", label | first %}
-                    <!-- <p>{{ collection.label }}</p> -->
-                    {% if collection.output %}
-                        {% if collection.label == "posts" %}
-                            {% assign reversed_posts = site[collection.label] | reverse %}
-                        {% else %}
-                            {% assign reversed_posts = site[collection.label] %}
-                        {% endif %}
+        return isChapterComplete(
+            chapterNumber - 1
+        );
 
-                        {% for post in reversed_posts %}
-                            {% if page.url == post.url %}
-                            <li class="chapter active" data-level="1.2" data-path="{{site.baseurl}}{{post.url}}">
-                            {% else %}
-                            <li class="chapter" data-level="1.1" data-path="{{site.baseurl}}{{post.url}}">
-                            {% endif %}
-                                <a href="{{site.baseurl}}{{post.url}}" onclick="pageScrollToTop(this)">
-                                    {{ post.title | escape }}
-                                </a>
-                                {% if site.toc.enabled %}
-                                    {% if page.url == post.url %}
-                                        {% include toc.html html=content h_min=site.toc.h_min h_max=site.toc.h_max %}
-                                    {% endif %}
-                                {% endif %}
-                            </li>
-                        {% endfor %}
+    }
 
-                        {% if reversed_posts.size > 0 %}
-                            <li class="divider"></li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            {% else %}
-                {% for collection in site.collections %}
-                    <!-- <p>{{ collection.label }}</p> -->
-                    {% if collection.output %}
-                        {% if collection.label == "posts" %}
-                            {% assign reversed_posts = site[collection.label] | reverse %}
-                        {% else %}
-                            {% assign reversed_posts = site[collection.label] %}
-                        {% endif %}
 
-                        {% for post in reversed_posts %}
-                            {% if page.url == post.url %}
-                            <li class="chapter active" data-level="1.2" data-path="{{site.baseurl}}{{post.url}}">
-                            {% else %}
-                            <li class="chapter" data-level="1.1" data-path="{{site.baseurl}}{{post.url}}">
-                            {% endif %}
-                                <a href="{{site.baseurl}}{{post.url}}" onclick="pageScrollToTop(this)">
-                                    {{ post.title | escape }}
-                                </a>
-                                {% if site.toc.enabled %}
-                                    {% if page.url == post.url %}
-                                        {% include toc.html html=content h_min=site.toc.h_min h_max=site.toc.h_max %}
-                                    {% endif %}
-                                {% endif %}
-                            </li>
-                        {% endfor %}
 
-                        {% if reversed_posts.size > 0 %}
-                            <li class="divider"></li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-        </ul>
-    </nav>
+    function getChapterNumberFromTitle(title) {
+
+        if (!title) {
+            return null;
+        }
+
+
+        /*
+        Matches titles such as:
+
+        Chapter 1. The Basics
+        Chapter 2. Nouns
+        Chapter 10. Something Else
+        */
+
+        const match =
+            title.match(
+                /^\s*Chapter\s+(\d+)\b/i
+            );
+
+
+        if (!match) {
+            return null;
+        }
+
+
+        return parseInt(
+            match[1],
+            10
+        );
+
+    }
+
+
+
+    function updateChapterNavigation() {
+
+        const links =
+            document.querySelectorAll(
+                ".chapter-lock-link"
+            );
+
+
+        links.forEach(function(link){
+
+            const chapterNumber =
+                parseInt(
+                    link.dataset.chapter,
+                    10
+                );
+
+
+            if (
+                !chapterNumber ||
+                Number.isNaN(chapterNumber)
+            ) {
+
+                return;
+
+            }
+
+
+            const unlocked =
+                isChapterUnlocked(
+                    chapterNumber
+                );
+
+
+            const parent =
+                link.closest(
+                    "li.chapter"
+                );
+
+
+            if (unlocked) {
+
+                link.classList.remove(
+                    "chapter-locked"
+                );
+
+                link.classList.add(
+                    "chapter-unlocked"
+                );
+
+                link.removeAttribute(
+                    "aria-disabled"
+                );
+
+                link.removeAttribute(
+                    "tabindex"
+                );
+
+
+                if (parent) {
+
+                    parent.classList.remove(
+                        "chapter-is-locked"
+                    );
+
+                }
+
+            }
+
+            else {
+
+                link.classList.remove(
+                    "chapter-unlocked"
+                );
+
+                link.classList.add(
+                    "chapter-locked"
+                );
+
+                link.setAttribute(
+                    "aria-disabled",
+                    "true"
+                );
+
+                link.setAttribute(
+                    "tabindex",
+                    "-1"
+                );
+
+
+                if (parent) {
+
+                    parent.classList.add(
+                        "chapter-is-locked"
+                    );
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+
+    function handleLockedChapterClick(event) {
+
+        const link =
+            event.target.closest(
+                ".chapter-lock-link"
+            );
+
+
+        if (!link) {
+            return;
+        }
+
+
+        if (
+            !link.classList.contains(
+                "chapter-locked"
+            )
+        ) {
+
+            return;
+        }
+
+
+        event.preventDefault();
+        event.stopPropagation();
+
+
+        const chapterNumber =
+            parseInt(
+                link.dataset.chapter,
+                10
+            );
+
+
+        if (
+            chapterNumber &&
+            chapterNumber > 1
+        ) {
+
+            const requiredChapter =
+                chapterNumber - 1;
+
+
+            window.alert(
+                "Chapter " +
+                chapterNumber +
+                " is locked. Complete all required exercises in Chapter " +
+                requiredChapter +
+                " to unlock it."
+            );
+
+        }
+
+        else {
+
+            window.alert(
+                "This chapter is currently locked."
+            );
+
+        }
+
+    }
+
+
+
+    /*
+    Allows chapter pages to trigger a navigation refresh
+    immediately after completion.
+    */
+
+    window.updateChapterNavigation =
+        updateChapterNavigation;
+
+
+    window.isLatinChapterUnlocked =
+        isChapterUnlocked;
+
+
+    window.isLatinChapterComplete =
+        isChapterComplete;
+
+
+
+    document.addEventListener(
+        "click",
+        handleLockedChapterClick
+    );
+
+
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            updateChapterNavigation
+        );
+
+    }
+
+    else {
+
+        updateChapterNavigation();
+
+    }
+
+
+    /*
+    If completion is changed in another tab,
+    update this tab automatically.
+    */
+
+    window.addEventListener(
+        "storage",
+        updateChapterNavigation
+    );
+
+
+})();
+
+</script>
+
+
+
+<nav role="navigation">
+
+
+<div
+id="book-search-input"
+role="search">
+
+<input
+type="text"
+placeholder="Type to search" />
+
+</div>
+
+
+<div
+id="book-search-input-link"
+role="search">
+
+<a
+href="{{site.baseurl}}/assets/search.html">
+
+Click to Search
+
+</a>
+
+</div>
+
+
+
+<ul class="summary">
+
+
+<!-- ============================================================
+     HOME / BOOK TITLE
+     ============================================================ -->
+
+{% if page.url == "/index.html" or page.url == "/" %}
+
+<li
+class="chapter active"
+data-level="1.1"
+data-path="{{site.baseurl}}">
+
+{% else %}
+
+<li
+class="chapter"
+data-level="1.1"
+data-path="{{site.baseurl}}">
+
+{% endif %}
+
+
+<a
+href="{{site.baseurl}}/"
+onclick="pageScrollToTop(this)">
+
+{{ site.title | escape }}
+
+</a>
+
+
+{% if site.toc.enabled %}
+
+    {% if site.toc.enabled_index %}
+
+        {% include toc.html
+            html=content
+            h_min=site.toc.h_min
+            h_max=site.toc.h_max
+        %}
+
+    {% endif %}
+
+{% endif %}
+
+
+</li>
+
+
+<li class="divider"></li>
+
+
+
+<!-- ============================================================
+     ORDERED COLLECTIONS
+     ============================================================ -->
+
+{% if site.ordered_collections %}
+
+
+{% for label in site.ordered_collections %}
+
+
+{% assign collection =
+    site.collections
+    | where: "label", label
+    | first
+%}
+
+
+{% if collection.output %}
+
+
+{% if collection.label == "posts" %}
+
+    {% assign reversed_posts =
+        site[collection.label]
+        | reverse
+    %}
+
+{% else %}
+
+    {% assign reversed_posts =
+        site[collection.label]
+    %}
+
+{% endif %}
+
+
+
+{% for post in reversed_posts %}
+
+
+<!-- ============================================================
+     DETERMINE WHETHER THIS POST IS A CHAPTER
+     ============================================================ -->
+
+{% assign title_words =
+    post.title
+    | split: " "
+%}
+
+
+{% assign first_word =
+    title_words[0]
+%}
+
+
+{% assign chapter_number_raw =
+    title_words[1]
+    | remove: "."
+    | remove: ":"
+%}
+
+
+{% assign chapter_number =
+    chapter_number_raw
+    | plus: 0
+%}
+
+
+
+<!-- ============================================================
+     ACTIVE / STANDARD LIST ITEM
+     ============================================================ -->
+
+{% if page.url == post.url %}
+
+<li
+class="chapter active"
+data-level="1.2"
+data-path="{{site.baseurl}}{{post.url}}">
+
+{% else %}
+
+<li
+class="chapter"
+data-level="1.1"
+data-path="{{site.baseurl}}{{post.url}}">
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     CHAPTER LINKS
+     ============================================================ -->
+
+{% if first_word == "Chapter" and chapter_number > 0 %}
+
+
+<a
+href="{{site.baseurl}}{{post.url}}"
+onclick="pageScrollToTop(this)"
+class="chapter-lock-link chapter-unlocked"
+data-chapter="{{chapter_number}}"
+data-chapter-title="{{post.title | escape}}">
+
+{{ post.title | escape }}
+
+<span
+class="chapter-lock-icon"
+aria-hidden="true">
+🔒
+</span>
+
+</a>
+
+
+{% else %}
+
+
+<!--
+Non-chapter posts/pages remain normal links.
+They are not affected by chapter progression.
+-->
+
+<a
+href="{{site.baseurl}}{{post.url}}"
+onclick="pageScrollToTop(this)">
+
+{{ post.title | escape }}
+
+</a>
+
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     CURRENT PAGE TABLE OF CONTENTS
+     ============================================================ -->
+
+{% if site.toc.enabled %}
+
+    {% if page.url == post.url %}
+
+        {% include toc.html
+            html=content
+            h_min=site.toc.h_min
+            h_max=site.toc.h_max
+        %}
+
+    {% endif %}
+
+{% endif %}
+
+
+</li>
+
+
+{% endfor %}
+
+
+
+{% if reversed_posts.size > 0 %}
+
+<li class="divider"></li>
+
+{% endif %}
+
+
+{% endif %}
+
+
+{% endfor %}
+
+
+
+<!-- ============================================================
+     FALLBACK WHEN ordered_collections IS NOT DEFINED
+     ============================================================ -->
+
+{% else %}
+
+
+{% for collection in site.collections %}
+
+
+{% if collection.output %}
+
+
+{% if collection.label == "posts" %}
+
+    {% assign reversed_posts =
+        site[collection.label]
+        | reverse
+    %}
+
+{% else %}
+
+    {% assign reversed_posts =
+        site[collection.label]
+    %}
+
+{% endif %}
+
+
+
+{% for post in reversed_posts %}
+
+
+<!-- ============================================================
+     DETERMINE CHAPTER NUMBER
+     ============================================================ -->
+
+{% assign title_words =
+    post.title
+    | split: " "
+%}
+
+
+{% assign first_word =
+    title_words[0]
+%}
+
+
+{% assign chapter_number_raw =
+    title_words[1]
+    | remove: "."
+    | remove: ":"
+%}
+
+
+{% assign chapter_number =
+    chapter_number_raw
+    | plus: 0
+%}
+
+
+
+<!-- ============================================================
+     ACTIVE / STANDARD LIST ITEM
+     ============================================================ -->
+
+{% if page.url == post.url %}
+
+<li
+class="chapter active"
+data-level="1.2"
+data-path="{{site.baseurl}}{{post.url}}">
+
+{% else %}
+
+<li
+class="chapter"
+data-level="1.1"
+data-path="{{site.baseurl}}{{post.url}}">
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     LINK
+     ============================================================ -->
+
+{% if first_word == "Chapter" and chapter_number > 0 %}
+
+
+<a
+href="{{site.baseurl}}{{post.url}}"
+onclick="pageScrollToTop(this)"
+class="chapter-lock-link chapter-unlocked"
+data-chapter="{{chapter_number}}"
+data-chapter-title="{{post.title | escape}}">
+
+{{ post.title | escape }}
+
+<span
+class="chapter-lock-icon"
+aria-hidden="true">
+🔒
+</span>
+
+</a>
+
+
+{% else %}
+
+
+<a
+href="{{site.baseurl}}{{post.url}}"
+onclick="pageScrollToTop(this)">
+
+{{ post.title | escape }}
+
+</a>
+
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     CURRENT PAGE TABLE OF CONTENTS
+     ============================================================ -->
+
+{% if site.toc.enabled %}
+
+    {% if page.url == post.url %}
+
+        {% include toc.html
+            html=content
+            h_min=site.toc.h_min
+            h_max=site.toc.h_max
+        %}
+
+    {% endif %}
+
+{% endif %}
+
+
+</li>
+
+
+{% endfor %}
+
+
+
+{% if reversed_posts.size > 0 %}
+
+<li class="divider"></li>
+
+{% endif %}
+
+
+{% endif %}
+
+
+{% endfor %}
+
+
+{% endif %}
+
+
+</ul>
+
+</nav>
+
 </div>
