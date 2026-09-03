@@ -13,11 +13,19 @@
          latin-chapter-3-complete
          etc.
 
+     Chapter unlock state:
+         latin-chapter-1-unlocked
+         latin-chapter-2-unlocked
+         latin-chapter-3-unlocked
+         etc.
+
      Exercise completion:
          latin-exercise-complete-chapter-N-EXERCISEID
 
      Chapter 1 is always unlocked.
-     Chapter N requires Chapter N-1 to be complete.
+     Chapter N is unlocked when:
+       1. it has previously been unlocked in this browser, OR
+       2. Chapter N-1 is complete.
 
      Exercise completion is earned when a detected score
      element reports a perfect score, such as:
@@ -431,6 +439,31 @@ li.chapter.chapter-is-locked > a {
     "use strict";
 
 
+    /*
+    Prevent duplicate event listeners if this include appears
+    more than once through nested layouts.
+    */
+
+    if (window.__latinChapterLocksInitialized) {
+
+        if (
+            typeof window.updateAllChapterNavigation ===
+            "function"
+        ) {
+
+            window.updateAllChapterNavigation();
+
+        }
+
+        return;
+
+    }
+
+
+    window.__latinChapterLocksInitialized =
+        true;
+
+
     /* ========================================================
        INTERNAL STATE
        ======================================================== */
@@ -486,6 +519,20 @@ li.chapter.chapter-is-locked > a {
             "latin-chapter-" +
             chapterNumber +
             "-complete"
+        );
+
+    }
+
+
+
+    function chapterUnlockKey(
+        chapterNumber
+    ) {
+
+        return (
+            "latin-chapter-" +
+            chapterNumber +
+            "-unlocked"
         );
 
     }
@@ -622,11 +669,38 @@ li.chapter.chapter-is-locked > a {
         chapterNumber
     ) {
 
+        chapterNumber =
+            parseInt(
+                chapterNumber,
+                10
+            );
+
+
+        if (
+            !chapterNumber ||
+            Number.isNaN(
+                chapterNumber
+            ) ||
+            chapterNumber < 1
+        ) {
+
+            return false;
+
+        }
+
+
         /*
         Chapter 1 is always unlocked.
+        Persist that fact so every page, including the home
+        screen, sees the same browser state.
         */
 
-        if (chapterNumber <= 1) {
+        if (chapterNumber === 1) {
+
+            storageSet(
+                chapterUnlockKey(1),
+                "true"
+            );
 
             return true;
 
@@ -634,13 +708,47 @@ li.chapter.chapter-is-locked > a {
 
 
         /*
-        Every later chapter requires completion
-        of the immediately preceding chapter.
+        Once a chapter has been unlocked in this browser,
+        keep it unlocked.
         */
 
-        return isChapterComplete(
-            chapterNumber - 1
-        );
+        if (
+            storageGet(
+                chapterUnlockKey(
+                    chapterNumber
+                )
+            ) === "true"
+        ) {
+
+            return true;
+
+        }
+
+
+        /*
+        Otherwise, unlock it when the immediately preceding
+        chapter is complete, and persist the unlock state.
+        */
+
+        if (
+            isChapterComplete(
+                chapterNumber - 1
+            )
+        ) {
+
+            storageSet(
+                chapterUnlockKey(
+                    chapterNumber
+                ),
+                "true"
+            );
+
+            return true;
+
+        }
+
+
+        return false;
 
     }
 
@@ -687,6 +795,19 @@ li.chapter.chapter-is-locked > a {
             return false;
 
         }
+
+
+        /*
+        Completing a chapter permanently unlocks the next
+        chapter in this browser.
+        */
+
+        storageSet(
+            chapterUnlockKey(
+                chapterNumber + 1
+            ),
+            "true"
+        );
 
 
         updateAllChapterNavigation();
@@ -893,77 +1014,43 @@ li.chapter.chapter-is-locked > a {
 
     function findScoreElements() {
 
+        /*
+        Prefer explicit score elements. Existing chapter posts
+        that predate data-exercise-score are still supported by
+        their conventional IDs ending in "-score".
+
+        Do NOT scan arbitrary parent text for "Score: X / Y";
+        doing so can count the same exercise multiple times.
+        */
+
         const candidates =
             Array.from(
                 document.querySelectorAll(
                     [
-                        '[id$="-score"]',
-                        '[class$="-score"]',
-                        '[class*=" score"]',
-                        '[data-score]',
-                        '[data-exercise-score]'
+                        "[data-exercise-score]",
+                        '[id$="-score"]'
                     ].join(",")
                 )
-            );
-
-
-        /*
-        Also inspect elements whose current text visibly
-        contains a score fraction. This gives us a fallback
-        for existing exercises that did not use a standardized
-        score ID/class.
-        */
-
-        const textCandidates =
-            Array.from(
-                document.querySelectorAll(
-                    "div, p, span"
-                )
-            )
-            .filter(
-                function(element){
-
-                    const text =
-                        element.textContent ||
-                        "";
-
-
-                    return (
-                        /score/i.test(
-                            text
-                        ) &&
-                        /\d+\s*\/\s*\d+/.test(
-                            text
-                        )
-                    );
-
-                }
-            );
-
-
-        const combined =
-            candidates.concat(
-                textCandidates
             );
 
 
         const unique =
             Array.from(
                 new Set(
-                    combined
+                    candidates
                 )
             );
 
 
-        /*
-        Exclude the progress widget itself.
-        */
-
         return unique.filter(
             function(element){
 
-                return !element.closest(
-                    ".chapter-progress-panel"
+                return (
+                    !element.closest(
+                        ".chapter-progress-panel"
+                    ) &&
+                    element.id !==
+                        "chapter-progress-status"
                 );
 
             }
@@ -1824,6 +1911,102 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
+       RESOLVE CHAPTER NUMBER FROM A NAVIGATION LINK
+
+       Primary source: data-chapter / data-next-chapter.
+       Fallbacks make the home screen resilient if the theme
+       renders chapter links without those data attributes.
+       ======================================================== */
+
+    function getChapterNumberFromLink(
+        link,
+        dataAttributeName
+    ) {
+
+        if (!link) {
+
+            return null;
+
+        }
+
+
+        const datasetValue =
+            dataAttributeName &&
+            link.dataset
+                ? link.dataset[
+                    dataAttributeName
+                ]
+                : null;
+
+
+        let chapterNumber =
+            parseInt(
+                datasetValue,
+                10
+            );
+
+
+        if (
+            chapterNumber &&
+            !Number.isNaN(
+                chapterNumber
+            )
+        ) {
+
+            return chapterNumber;
+
+        }
+
+
+        const searchableText =
+            [
+                link.textContent || "",
+                link.getAttribute("aria-label") || "",
+                link.getAttribute("title") || "",
+                link.getAttribute("href") || "",
+                link.dataset
+                    ? (
+                        link.dataset.lockedHref ||
+                        ""
+                    )
+                    : ""
+            ].join(" ");
+
+
+        const match =
+            searchableText.match(
+                /chapter[\s\-_:/]*(\d+)/i
+            );
+
+
+        if (!match) {
+
+            return null;
+
+        }
+
+
+        chapterNumber =
+            parseInt(
+                match[1],
+                10
+            );
+
+
+        return (
+            chapterNumber &&
+            !Number.isNaN(
+                chapterNumber
+            )
+        )
+            ? chapterNumber
+            : null;
+
+    }
+
+
+
+    /* ========================================================
        UPDATE ONE SIDEBAR CHAPTER LINK
        ======================================================== */
 
@@ -1832,9 +2015,9 @@ li.chapter.chapter-is-locked > a {
     ) {
 
         const chapterNumber =
-            parseInt(
-                link.dataset.chapter,
-                10
+            getChapterNumberFromLink(
+                link,
+                "chapter"
             );
 
 
@@ -1951,10 +2134,16 @@ li.chapter.chapter-is-locked > a {
             )
         ) {
 
-            link.dataset.lockedHref =
-                link.getAttribute(
-                    "href"
-                );
+            if (
+                !link.dataset.lockedHref
+            ) {
+
+                link.dataset.lockedHref =
+                    link.getAttribute(
+                        "href"
+                    );
+
+            }
 
 
             link.removeAttribute(
@@ -1982,14 +2171,96 @@ li.chapter.chapter-is-locked > a {
 
     function updateChapterNavigation() {
 
+        const explicitLinks =
+            Array.from(
+                document.querySelectorAll(
+                    ".chapter-lock-link"
+                )
+            );
+
+
+        /*
+        Home-screen fallback:
+        also inspect sidebar/list links that visibly identify
+        themselves as Chapter N links. This allows the lock
+        system to work even when a theme-generated home TOC
+        omits the chapter-lock-link class or data-chapter.
+        */
+
+        const fallbackLinks =
+            Array.from(
+                document.querySelectorAll(
+                    "a"
+                )
+            )
+            .filter(
+                function(link){
+
+                    if (
+                        link.classList.contains(
+                            "chapter-next-lock-link"
+                        )
+                    ) {
+
+                        return false;
+
+                    }
+
+
+                    return (
+                        getChapterNumberFromLink(
+                            link,
+                            "chapter"
+                        ) !== null
+                    );
+
+                }
+            );
+
+
         const links =
-            document.querySelectorAll(
-                ".chapter-lock-link"
+            Array.from(
+                new Set(
+                    explicitLinks.concat(
+                        fallbackLinks
+                    )
+                )
             );
 
 
         links.forEach(
             function(link){
+
+                /*
+                Normalize fallback links so click and keyboard
+                handlers treat them exactly like regular TOC
+                chapter links.
+                */
+
+                const chapterNumber =
+                    getChapterNumberFromLink(
+                        link,
+                        "chapter"
+                    );
+
+
+                if (
+                    chapterNumber &&
+                    !link.dataset.chapter
+                ) {
+
+                    link.dataset.chapter =
+                        String(
+                            chapterNumber
+                        );
+
+                }
+
+
+                link.classList.add(
+                    "chapter-lock-link"
+                );
+
 
                 updateSidebarChapterLink(
                     link
@@ -2018,9 +2289,9 @@ li.chapter.chapter-is-locked > a {
             function(link){
 
                 const chapterNumber =
-                    parseInt(
-                        link.dataset.nextChapter,
-                        10
+                    getChapterNumberFromLink(
+                        link,
+                        "nextChapter"
                     );
 
 
@@ -2122,10 +2393,16 @@ li.chapter.chapter-is-locked > a {
                     )
                 ) {
 
-                    link.dataset.lockedHref =
-                        link.getAttribute(
-                            "href"
-                        );
+                    if (
+                        !link.dataset.lockedHref
+                    ) {
+
+                        link.dataset.lockedHref =
+                            link.getAttribute(
+                                "href"
+                            );
+
+                    }
 
 
                     link.removeAttribute(
@@ -2177,9 +2454,9 @@ li.chapter.chapter-is-locked > a {
 
 
         const chapterNumber =
-            parseInt(
-                link.dataset.chapter,
-                10
+            getChapterNumberFromLink(
+                link,
+                "chapter"
             );
 
 
@@ -2262,9 +2539,9 @@ li.chapter.chapter-is-locked > a {
 
 
         const chapterNumber =
-            parseInt(
-                link.dataset.nextChapter,
-                10
+            getChapterNumberFromLink(
+                link,
+                "nextChapter"
             );
 
 
@@ -2352,9 +2629,9 @@ li.chapter.chapter-is-locked > a {
         if (sidebarLink) {
 
             const chapterNumber =
-                parseInt(
-                    sidebarLink.dataset.chapter,
-                    10
+                getChapterNumberFromLink(
+                    sidebarLink,
+                    "chapter"
                 );
 
 
@@ -2392,9 +2669,9 @@ li.chapter.chapter-is-locked > a {
         if (nextLink) {
 
             const chapterNumber =
-                parseInt(
-                    nextLink.dataset.nextChapter,
-                    10
+                getChapterNumberFromLink(
+                    nextLink,
+                    "nextChapter"
                 );
 
 
@@ -2625,6 +2902,16 @@ li.chapter.chapter-is-locked > a {
        ======================================================== */
 
     function initializeChapterLocks() {
+
+        /*
+        Chapter 1 is always available in every browser.
+        */
+
+        storageSet(
+            chapterUnlockKey(1),
+            "true"
+        );
+
 
         /*
         Direct URL protection comes first.
