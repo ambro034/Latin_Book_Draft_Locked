@@ -275,7 +275,7 @@ For each pattern recognition section, translate the Latin into English. The seco
     </button>
 </div>
 
-<div id="sn-score" class="sn-score"></div>
+<div id="sn-score" class="sn-score" data-exercise-score data-exercise-id="ch3-noun-use-number"></div>
 
 
 <script>
@@ -796,7 +796,7 @@ You can use the adjective ending chart above if necessary.
 </div>
 
 
-<div id="adj-score" class="adj-score"></div>
+<div id="adj-score" class="adj-score" data-exercise-score data-exercise-id="ch3-adjective-agreement"></div>
 
 
 <script>
@@ -1717,7 +1717,7 @@ For numbers <strong>8–12</strong>, <strong>segment the sentence</strong> befor
 </div>
 
 
-<div id="pt-score" class="pt-score"></div>
+<div id="pt-score" class="pt-score" data-exercise-score data-exercise-id="ch3-pattern-translation"></div>
 
 
 <script>
