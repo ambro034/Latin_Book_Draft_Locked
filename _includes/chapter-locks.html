@@ -2203,10 +2203,30 @@ li.chapter.chapter-is-locked > a {
        ======================================================== */
 
     function isChapterNavigationLink(
-        link
+    link
     ) {
 
         if (!link) {
+
+            return false;
+
+        }
+
+
+        /*
+        Only links inside the GitBook sidebar should ever be
+        treated as sidebar chapter-navigation links.
+
+        This prevents the chapter title in .book-header and
+        other links elsewhere on the page from being modified
+        by the chapter-locking system.
+        */
+
+        if (
+            !link.closest(
+                ".book-summary"
+            )
+        ) {
 
             return false;
 
@@ -2346,10 +2366,17 @@ li.chapter.chapter-is-locked > a {
 
     function updateChapterNavigation() {
 
+        /*
+        Search ONLY the GitBook sidebar.
+
+        Do not scan header links, content links, toolbar links,
+        modal links, or navigation controls.
+        */
+
         const links =
             Array.from(
                 document.querySelectorAll(
-                    "a"
+                    ".book-summary a"
                 )
             )
             .filter(
@@ -2358,7 +2385,7 @@ li.chapter.chapter-is-locked > a {
 
 
         links.forEach(
-            updateSidebarChapterLink
+        updateSidebarChapterLink
         );
 
     }
