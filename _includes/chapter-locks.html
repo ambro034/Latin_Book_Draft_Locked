@@ -612,34 +612,24 @@ li.chapter.chapter-is-locked > a {
 
 
         /*
-        If the rendered page did not identify itself as a chapter,
-        use the body value only as a final fallback. This supports
-        full-load post pages while avoiding stale GitBook state.
+        IMPORTANT:
+        If the CURRENT rendered content, title, and URL do not
+        identify a chapter, this is a non-chapter page such as
+        README/home.
+
+        GitBook can leave the previous post's
+        data-current-chapter value on <body> after client-side
+        navigation. Never fall back to that stale value here,
+        because the homepage has zero exercises and would
+        otherwise be mistaken for the previous chapter and
+        automatically complete it.
         */
 
-        const bodyValue =
-            document.body
-                ? document.body.getAttribute(
-                    "data-current-chapter"
-                )
-                : null;
+        if (document.body) {
 
-
-        const fallbackChapter =
-            parseInt(
-                bodyValue,
-                10
+            document.body.removeAttribute(
+                "data-current-chapter"
             );
-
-
-        if (
-            fallbackChapter &&
-            !Number.isNaN(
-                fallbackChapter
-            )
-        ) {
-
-            return fallbackChapter;
 
         }
 
@@ -1641,6 +1631,11 @@ li.chapter.chapter-is-locked > a {
 
 
         if (!chapterNumber) {
+
+            /*
+            Never evaluate chapter completion on README/home or
+            any other non-chapter page.
+            */
 
             return;
 
@@ -2823,6 +2818,30 @@ li.chapter.chapter-is-locked > a {
             detectChapterExercises();
 
             updateChapterProgress();
+
+        }
+
+        else {
+
+            /*
+            README/home and other non-chapter pages must NEVER
+            participate in exercise or chapter completion.
+
+            Remove any stale chapter-progress panel that may have
+            survived a client-side GitBook transition.
+            */
+
+            const staleProgressPanel =
+                document.getElementById(
+                    "chapter-progress-panel"
+                );
+
+
+            if (staleProgressPanel) {
+
+                staleProgressPanel.remove();
+
+            }
 
         }
 
