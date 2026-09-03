@@ -56,7 +56,8 @@
 
 .chapter-lock-icon {
     display: inline-block;
-    margin-left: 6px;
+    margin-left: 0;
+    margin-right: 6px;
     font-size: 0.9em;
     vertical-align: baseline;
 }
@@ -2244,6 +2245,61 @@ li.chapter.chapter-is-locked > a {
         );
 
 
+        /*
+        Ensure the lock icon exists and, whenever the chapter
+        is locked, place it BEFORE the chapter name.
+        */
+
+        let lockIcon =
+            link.querySelector(
+                ".chapter-lock-icon"
+            );
+
+
+        if (!lockIcon) {
+
+            lockIcon =
+                document.createElement(
+                    "span"
+                );
+
+
+            lockIcon.className =
+                "chapter-lock-icon";
+
+
+            lockIcon.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+
+            lockIcon.textContent =
+                "🔒";
+
+        }
+
+
+        if (!unlocked) {
+
+            /*
+            prepend() places the lock icon at the very beginning
+            of the link so the display becomes:
+
+                🔒 Chapter Name
+
+            rather than:
+
+                Chapter Name 🔒
+            */
+
+            link.prepend(
+                lockIcon
+            );
+
+        }
+
+
         if (unlocked) {
 
             link.removeAttribute(
@@ -3208,7 +3264,7 @@ li.chapter.chapter-is-locked > a {
 
     if (
         document.readyState ===
-        "loading"
+            "loading"
     ) {
 
         document.addEventListener(
