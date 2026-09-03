@@ -38,7 +38,146 @@ li.chapter.chapter-is-locked > a {
     cursor: not-allowed;
 }
 
+
+/* ============================================================
+   CHAPTER LOCK MODAL
+   ============================================================ */
+
+.chapter-lock-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.chapter-lock-modal-overlay.chapter-lock-modal-visible {
+    display: flex;
+}
+
+.chapter-lock-modal {
+    width: 100%;
+    max-width: 440px;
+    background: #ffffff;
+    border: 2px solid #356C94;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+}
+
+.chapter-lock-modal-header {
+    padding: 16px 20px;
+    background: #cfe2ff;
+    border-bottom: 1px solid #356C94;
+}
+
+.chapter-lock-modal-title {
+    margin: 0;
+    color: #084298;
+    font-size: 1.15em;
+    font-weight: bold;
+}
+
+.chapter-lock-modal-icon {
+    margin-right: 6px;
+}
+
+.chapter-lock-modal-body {
+    padding: 20px;
+    line-height: 1.55;
+    color: #333333;
+}
+
+.chapter-lock-modal-footer {
+    padding: 0 20px 20px;
+    text-align: right;
+}
+
+.chapter-lock-modal-button {
+    padding: 9px 18px;
+    border: 1px solid #356C94;
+    border-radius: 5px;
+    background: #356C94;
+    color: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+.chapter-lock-modal-button:hover {
+    opacity: 0.9;
+}
+
+.chapter-lock-modal-button:focus-visible {
+    outline: 3px solid #cfe2ff;
+    outline-offset: 2px;
+}
+
 </style>
+
+
+
+<!-- ============================================================
+     CHAPTER LOCK MODAL
+     ============================================================ -->
+
+<div
+    id="chapter-lock-modal-overlay"
+    class="chapter-lock-modal-overlay"
+    aria-hidden="true">
+
+    <div
+        class="chapter-lock-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chapter-lock-modal-title">
+
+        <div class="chapter-lock-modal-header">
+
+            <h3
+                id="chapter-lock-modal-title"
+                class="chapter-lock-modal-title">
+
+                <span
+                    class="chapter-lock-modal-icon"
+                    aria-hidden="true">
+                    🔒
+                </span>
+
+                Chapter Locked
+
+            </h3>
+
+        </div>
+
+
+        <div
+            id="chapter-lock-modal-message"
+            class="chapter-lock-modal-body">
+        </div>
+
+
+        <div class="chapter-lock-modal-footer">
+
+            <button
+                type="button"
+                id="chapter-lock-modal-close"
+                class="chapter-lock-modal-button">
+
+                OK
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 
 <script type="text/javascript">
@@ -128,6 +267,14 @@ function mobilePageScrollToAnchor(element) {
     */
 
 
+    let lastLockedChapterLink = null;
+
+
+
+    /* ========================================================
+       STORAGE HELPERS
+       ======================================================== */
+
     function chapterCompletionKey(chapterNumber) {
 
         return (
@@ -175,6 +322,134 @@ function mobilePageScrollToAnchor(element) {
     }
 
 
+
+    /* ========================================================
+       MODAL FUNCTIONS
+       ======================================================== */
+
+    function showChapterLockModal(
+        message,
+        sourceLink
+    ) {
+
+        const overlay =
+            document.getElementById(
+                "chapter-lock-modal-overlay"
+            );
+
+
+        const messageElement =
+            document.getElementById(
+                "chapter-lock-modal-message"
+            );
+
+
+        const closeButton =
+            document.getElementById(
+                "chapter-lock-modal-close"
+            );
+
+
+        if (
+            !overlay ||
+            !messageElement
+        ) {
+
+            return;
+
+        }
+
+
+        lastLockedChapterLink =
+            sourceLink || null;
+
+
+        messageElement.textContent =
+            message;
+
+
+        overlay.classList.add(
+            "chapter-lock-modal-visible"
+        );
+
+
+        overlay.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        if (closeButton) {
+
+            window.setTimeout(
+                function(){
+
+                    closeButton.focus();
+
+                },
+                0
+            );
+
+        }
+
+    }
+
+
+
+    function closeChapterLockModal() {
+
+        const overlay =
+            document.getElementById(
+                "chapter-lock-modal-overlay"
+            );
+
+
+        if (!overlay) {
+
+            return;
+
+        }
+
+
+        overlay.classList.remove(
+            "chapter-lock-modal-visible"
+        );
+
+
+        overlay.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        /*
+        Return keyboard focus to the chapter
+        link that opened the modal.
+        */
+
+        if (lastLockedChapterLink) {
+
+            window.setTimeout(
+                function(){
+
+                    lastLockedChapterLink.focus();
+
+                },
+                0
+            );
+
+        }
+
+
+        lastLockedChapterLink = null;
+
+    }
+
+
+
+    /* ========================================================
+       UPDATE SIDEBAR LOCKS
+       ======================================================== */
 
     function updateChapterNavigation() {
 
@@ -225,13 +500,16 @@ function mobilePageScrollToAnchor(element) {
                     "chapter-locked"
                 );
 
+
                 link.classList.add(
                     "chapter-unlocked"
                 );
 
+
                 link.removeAttribute(
                     "aria-disabled"
                 );
+
 
                 link.removeAttribute(
                     "tabindex"
@@ -239,8 +517,8 @@ function mobilePageScrollToAnchor(element) {
 
 
                 /*
-                Restore the original chapter URL if this
-                chapter was previously locked.
+                Restore the original chapter URL if
+                this chapter was previously locked.
                 */
 
                 if (
@@ -251,6 +529,7 @@ function mobilePageScrollToAnchor(element) {
                         "href",
                         link.dataset.lockedHref
                     );
+
 
                     delete link.dataset.lockedHref;
 
@@ -278,35 +557,49 @@ function mobilePageScrollToAnchor(element) {
                     "chapter-unlocked"
                 );
 
+
                 link.classList.add(
                     "chapter-locked"
                 );
+
 
                 link.setAttribute(
                     "aria-disabled",
                     "true"
                 );
 
+
+                /*
+                We keep the link keyboard-focusable so
+                keyboard users can still receive the
+                explanation modal.
+                */
+
                 link.setAttribute(
                     "tabindex",
-                    "-1"
+                    "0"
                 );
 
 
                 /*
                 Save the real URL before removing it.
 
-                This prevents GitBook's own navigation
-                system from loading the chapter even if
-                another click handler fires.
+                Removing href prevents GitBook or any
+                other navigation script from opening
+                the locked chapter.
                 */
 
                 if (
-                    link.hasAttribute("href")
+                    link.hasAttribute(
+                        "href"
+                    )
                 ) {
 
                     link.dataset.lockedHref =
-                        link.getAttribute("href");
+                        link.getAttribute(
+                            "href"
+                        );
+
 
                     link.removeAttribute(
                         "href"
@@ -326,6 +619,55 @@ function mobilePageScrollToAnchor(element) {
             }
 
         });
+
+    }
+
+
+
+    /* ========================================================
+       SHOW LOCK MESSAGE
+       ======================================================== */
+
+    function explainLockedChapter(link) {
+
+        const chapterNumber =
+            parseInt(
+                link.dataset.chapter,
+                10
+            );
+
+
+        if (
+            chapterNumber &&
+            chapterNumber > 1
+        ) {
+
+            const requiredChapter =
+                chapterNumber - 1;
+
+
+            showChapterLockModal(
+
+                "Chapter " +
+                chapterNumber +
+                " is locked. Complete all required exercises in Chapter " +
+                requiredChapter +
+                " to unlock it.",
+
+                link
+
+            );
+
+        }
+
+        else {
+
+            showChapterLockModal(
+                "This chapter is currently locked.",
+                link
+            );
+
+        }
 
     }
 
@@ -362,7 +704,7 @@ function mobilePageScrollToAnchor(element) {
 
 
         /*
-        Stop all navigation before GitBook or another
+        Stop navigation before GitBook or another
         script can process the click.
         */
 
@@ -373,44 +715,137 @@ function mobilePageScrollToAnchor(element) {
         event.stopImmediatePropagation();
 
 
-        const chapterNumber =
-            parseInt(
-                link.dataset.chapter,
-                10
+        explainLockedChapter(
+            link
+        );
+
+
+        return false;
+
+    }
+
+
+
+    /* ========================================================
+       KEYBOARD SUPPORT FOR LOCKED CHAPTERS
+       ======================================================== */
+
+    function handleLockedChapterKeydown(event) {
+
+        if (
+            event.key !== "Enter" &&
+            event.key !== " "
+        ) {
+
+            return;
+
+        }
+
+
+        const link =
+            event.target.closest(
+                ".chapter-lock-link"
+            );
+
+
+        if (!link) {
+
+            return;
+
+        }
+
+
+        if (
+            !link.classList.contains(
+                "chapter-locked"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+
+        explainLockedChapter(
+            link
+        );
+
+    }
+
+
+
+    /* ========================================================
+       MODAL CLICK HANDLER
+       ======================================================== */
+
+    function handleModalClick(event) {
+
+        if (
+            event.target.id ===
+            "chapter-lock-modal-close"
+        ) {
+
+            closeChapterLockModal();
+
+            return;
+
+        }
+
+
+        /*
+        Clicking the dark overlay outside the modal
+        closes the modal.
+        */
+
+        if (
+            event.target.id ===
+            "chapter-lock-modal-overlay"
+        ) {
+
+            closeChapterLockModal();
+
+        }
+
+    }
+
+
+
+    /* ========================================================
+       ESCAPE KEY CLOSES MODAL
+       ======================================================== */
+
+    function handleModalKeydown(event) {
+
+        if (
+            event.key !== "Escape"
+        ) {
+
+            return;
+
+        }
+
+
+        const overlay =
+            document.getElementById(
+                "chapter-lock-modal-overlay"
             );
 
 
         if (
-            chapterNumber &&
-            chapterNumber > 1
+            overlay &&
+            overlay.classList.contains(
+                "chapter-lock-modal-visible"
+            )
         ) {
 
-            const requiredChapter =
-                chapterNumber - 1;
-
-
-            window.alert(
-
-                "Chapter " +
-                chapterNumber +
-                " is locked. Complete all required exercises in Chapter " +
-                requiredChapter +
-                " to unlock it."
-
-            );
+            closeChapterLockModal();
 
         }
-
-        else {
-
-            window.alert(
-                "This chapter is currently locked."
-            );
-
-        }
-
-
-        return false;
 
     }
 
@@ -421,8 +856,9 @@ function mobilePageScrollToAnchor(element) {
        ======================================================== */
 
     /*
-    These allow chapter exercises to refresh the
-    sidebar immediately after completion.
+    Chapter exercise scripts can call this after
+    a chapter or exercise has been completed so
+    the sidebar refreshes immediately.
     */
 
     window.updateChapterNavigation =
@@ -443,7 +879,7 @@ function mobilePageScrollToAnchor(element) {
 
        true = capture phase
 
-       This means the locking handler runs BEFORE
+       This ensures the chapter lock runs before
        GitBook's own navigation handlers.
        ======================================================== */
 
@@ -451,6 +887,35 @@ function mobilePageScrollToAnchor(element) {
         "click",
         handleLockedChapterClick,
         true
+    );
+
+
+
+    /* ========================================================
+       KEYBOARD LISTENER
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        handleLockedChapterKeydown,
+        true
+    );
+
+
+
+    /* ========================================================
+       MODAL LISTENERS
+       ======================================================== */
+
+    document.addEventListener(
+        "click",
+        handleModalClick
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        handleModalKeydown
     );
 
 
