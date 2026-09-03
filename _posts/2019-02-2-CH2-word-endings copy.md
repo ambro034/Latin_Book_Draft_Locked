@@ -196,7 +196,7 @@ When memorizing a word, it’s important to remember not just what it means in E
   <button onclick="checkVerbQuiz()">Check Answers</button>
   <button onclick="resetVerbQuiz()">Reset</button>
 
-  <div id="score"></div>
+  <div id="score" data-exercise-id="ch2-transitivity"></div>
 
   <script>
     const verbQuestions = [
@@ -352,7 +352,7 @@ When memorizing a word, it’s important to remember not just what it means in E
 <button class="func-button" onclick="resetFuncQuiz()">Reset</button>
 
 
-<div id="func-score"></div>
+<div id="func-score" data-exercise-id="ch2-functions"></div>
 
 
 
@@ -675,7 +675,7 @@ After you translate into English, translate the next sentence, which has a diffe
 <button class="trans-button" onclick="checkTransQuiz()">Check Answers</button>
 <button class="trans-button" onclick="resetTransQuiz()">Reset</button>
 
-<div id="trans-score"></div>
+<div id="trans-score" data-exercise-id="ch2-translation"></div>
 
 
 <script>
@@ -1225,4 +1225,3 @@ buildTransQuiz();
 
 >**Note:** All Latin nouns have gender. This means that a mind (*mens, mentis*) is a “she” and a foot (*pes, pedis*) is a “he,” and the sea (*mare, maris*) Chapter 4 is an “it.” The most important thing is to remember that gender does not always depend on the definition, and that Romans often used pronouns that we could translate as “her” to mean an abstract idea like the mind.
 {: .block-tip }
-
