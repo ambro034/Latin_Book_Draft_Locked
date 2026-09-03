@@ -46,7 +46,7 @@
     cursor: not-allowed;
 
     /*
-    Keep the lock and chapter title together horizontally.
+    Keep lock and chapter title together horizontally.
     */
     display: flex !important;
     flex-direction: row !important;
@@ -64,15 +64,18 @@
 
 
 /*
-Lock is its own flex item.
-
-It cannot drop below the title.
+Lock sits directly beside the chapter title.
 */
 .chapter-lock-icon {
     display: inline-block;
     flex: 0 0 auto;
 
-    margin: 0 6px 0 0 !important;
+    margin: 0 3px 0 0 !important;
+    padding: 0 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
 
     font-size: 0.9em;
     line-height: inherit;
@@ -82,15 +85,17 @@ It cannot drop below the title.
 
 
 /*
-The title occupies the remaining sidebar width.
-
-If a long chapter title wraps, only the title wraps.
-The lock stays at the upper left.
+Chapter title begins immediately after the lock.
 */
 .chapter-lock-title {
-    display: block;
-    flex: 1 1 auto;
-    min-width: 0;
+    display: inline !important;
+    flex: 0 1 auto !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
 
     order: 1;
 }
@@ -102,7 +107,7 @@ The lock stays at the upper left.
 
 
 /*
-Unlocked links do not need flex positioning.
+Unlocked links return to normal GitBook layout.
 */
 .chapter-lock-link.chapter-unlocked {
     display: block !important;
