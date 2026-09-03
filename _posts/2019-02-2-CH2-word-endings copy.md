@@ -8,6 +8,34 @@ keyword: Latin
 ---
 
 
+<!-- ============================================================
+     CHAPTER 2 ACCESS GUARD
+     Chapter 1 must be complete before Chapter 2 can be viewed.
+     This is a defensive page-level guard in addition to the
+     centralized sidebar/Next-button locking system.
+     ============================================================ -->
+
+<script>
+(function () {
+  "use strict";
+
+  var chapter1Complete = false;
+
+  try {
+    chapter1Complete =
+      window.localStorage.getItem("latin-chapter-1-complete") === "true";
+  } catch (error) {
+    chapter1Complete = false;
+  }
+
+  if (!chapter1Complete) {
+    window.location.replace("{{ site.baseurl }}{{ page.previous.url }}");
+  }
+})();
+</script>
+
+
+
 ### Principles of grammar
 
 Today, words that change forms (he brings, he brought; child, children) are thought to be irregular, but most languages (including English), began with lots of different endings for all words. Speakers changed these endings according to the role each word pays in the sentence. Most modern languages instead use word order to express this information. This is called **inflection** (from the Latin word for *flex* or *bend*, because one can bend the words in different ways to mean something different).
