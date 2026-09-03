@@ -402,7 +402,7 @@ its person, number, tense, and voice the same. Remember that Latin has
     Reset
 </button>
 
-<div id="mood-score" class="mood-score"></div>
+<div id="mood-score" class="mood-score" data-exercise-score data-exercise-id="ch20-verb-mood"></div>
 
 
 <script>
@@ -1023,7 +1023,7 @@ possible, choose the translation that is consistent with the use you identify.
     Reset
 </button>
 
-<div id="isub-score" class="isub-score"></div>
+<div id="isub-score" class="isub-score" data-exercise-score data-exercise-id="ch20-subjunctive-identification"></div>
 
 
 <script>

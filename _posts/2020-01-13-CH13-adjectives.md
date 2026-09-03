@@ -347,7 +347,7 @@ into English. Pay attention to case, tense, reflexive pronouns, and indirect sta
     Reset
 </button>
 
-<div id="cltr-score" class="cltr-score"></div>
+<div id="cltr-score" class="cltr-score" data-exercise-score data-exercise-id="ch13-clause-translation"></div>
 
 <script>
 (function(){
@@ -781,7 +781,7 @@ Latin phrase. Macron marks are optional.
     Reset
 </button>
 
-<div id="vp-score" class="vp-score"></div>
+<div id="vp-score" class="vp-score" data-exercise-score data-exercise-id="ch13-verb-patterns"></div>
 
 <script>
 (function(){

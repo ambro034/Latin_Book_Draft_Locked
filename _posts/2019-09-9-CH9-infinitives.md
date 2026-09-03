@@ -276,7 +276,7 @@ then translate the sentence into English.
     Reset
 </button>
 
-<div id="ia-score" class="ia-score"></div>
+<div id="ia-score" class="ia-score" data-exercise-score data-exercise-id="ch9-infinitive-analysis"></div>
 
 <script>
 (function(){
@@ -758,7 +758,7 @@ translate the following into <strong>Latin</strong>. Macron marks are optional.
     Reset
 </button>
 
-<div id="pl-score" class="pl-score"></div>
+<div id="pl-score" class="pl-score" data-exercise-score data-exercise-id="ch9-pattern-translation"></div>
 
 <script>
 (function(){

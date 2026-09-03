@@ -245,7 +245,7 @@ Then translate the sentence without vocabulary or notes. If the verb is
     Reset
 </button>
 
-<div id="dep-score" class="dep-score"></div>
+<div id="dep-score" class="dep-score" data-exercise-score data-exercise-id="ch18-deponent-verbs"></div>
 
 
 <script>
@@ -709,7 +709,7 @@ or <strong>infinitive</strong>. Macrons are optional.
     Reset
 </button>
 
-<div id="depl-score" class="depl-score"></div>
+<div id="depl-score" class="depl-score" data-exercise-score data-exercise-id="ch18-deponent-translation"></div>
 
 
 <script>

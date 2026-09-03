@@ -216,7 +216,7 @@ For numbers <strong>1–5</strong>, translate from Latin into English. For numbe
 </div>
 
 
-<div id="abl-score" class="abl-score"></div>
+<div id="abl-score" class="abl-score" data-exercise-score data-exercise-id="ch4-ablative"></div>
 
 
 <script>

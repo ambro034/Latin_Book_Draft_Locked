@@ -273,7 +273,7 @@ Type only the <strong>missing portion</strong> of the verb. Macron marks are opt
     Reset
 </button>
 
-<div id="c11v-score" class="c11v-score"></div>
+<div id="c11v-score" class="c11v-score" data-exercise-score data-exercise-id="ch11-vocabulary"></div>
 
 <script>
 (function(){
@@ -639,7 +639,7 @@ Type only the missing portion shown for each blank. Macron marks are optional.
     Reset
 </button>
 
-<div id="isc-score" class="isc-score"></div>
+<div id="isc-score" class="isc-score" data-exercise-score data-exercise-id="ch11-indirect-statement"></div>
 
 <script>
 (function(){

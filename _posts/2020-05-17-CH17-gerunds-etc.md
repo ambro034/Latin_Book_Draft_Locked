@@ -278,7 +278,7 @@ Translate the gerundive construction:
     Reset
 </button>
 
-<div id="ger-score" class="ger-score"></div>
+<div id="ger-score" class="ger-score" data-exercise-score data-exercise-id="ch17-gerunds"></div>
 
 
 <script>
@@ -612,7 +612,7 @@ that occurs <strong>after</strong> the action of the head verb.
     Reset
 </button>
 
-<div id="indf-score" class="indf-score"></div>
+<div id="indf-score" class="indf-score" data-exercise-score data-exercise-id="ch17-indirect-forms"></div>
 
 
 <script>

@@ -309,7 +309,7 @@ Pattern Recognition
 <button type="button" class="pa-control-button" onclick="checkPaQuiz()">Check Answers</button>
 <button type="button" class="pa-control-button" onclick="resetPaQuiz()">Reset</button>
 
-<div id="pa-score" class="pa-score"></div>
+<div id="pa-score" class="pa-score" data-exercise-score data-exercise-id="ch7-pronoun-agreement"></div>
 
 <script>
 (function(){
@@ -561,7 +561,7 @@ an <strong>adjective</strong>.
 <button type="button" class="dt-control-button" onclick="checkDtQuiz()">Check Answers</button>
 <button type="button" class="dt-control-button" onclick="resetDtQuiz()">Reset</button>
 
-<div id="dt-score" class="dt-score"></div>
+<div id="dt-score" class="dt-score" data-exercise-score data-exercise-id="ch7-demonstrative-translation"></div>
 
 <script>
 (function(){
@@ -802,7 +802,7 @@ to match the English translation. Type the complete missing word.
 <button type="button" class="df-control-button" onclick="checkDfQuiz()">Check Answers</button>
 <button type="button" class="df-control-button" onclick="resetDfQuiz()">Reset</button>
 
-<div id="df-score" class="df-score"></div>
+<div id="df-score" class="df-score" data-exercise-score data-exercise-id="ch7-declension-forms"></div>
 
 <script>
 (function(){
@@ -1047,7 +1047,7 @@ Translate it into <strong>Latin</strong>, paying attention to your choice of
 <button type="button" class="c7-control-button" onclick="checkC7Quiz()">Check Answers</button>
 <button type="button" class="c7-control-button" onclick="resetC7Quiz()">Reset</button>
 
-<div id="c7-score" class="c7-score"></div>
+<div id="c7-score" class="c7-score" data-exercise-score data-exercise-id="ch7-translation"></div>
 
 <script>
 (function(){

@@ -338,7 +338,7 @@ Macrons are optional.
     Reset
 </button>
 
-<div id="npf-score" class="npf-score"></div>
+<div id="npf-score" class="npf-score" data-exercise-score data-exercise-id="ch16-noun-pronoun-forms"></div>
 
 
 <script>
@@ -621,7 +621,7 @@ three points: one for tense, one for voice, and one for translation.
     Reset
 </button>
 
-<div id="tv-score" class="tv-score"></div>
+<div id="tv-score" class="tv-score" data-exercise-score data-exercise-id="ch16-translation-vocabulary"></div>
 
 
 <script>

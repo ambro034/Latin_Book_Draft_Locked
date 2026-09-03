@@ -159,7 +159,7 @@ If there is no clause, click the box.
 <button class="sp-button" onclick="checkSPQuiz()">Check Answers</button>
 <button class="sp-button" onclick="resetSPQuiz()">Reset</button>
 
-<div id="sp-score"></div>
+<div id="sp-score" data-exercise-score data-exercise-id="ch1-subject-predicate"></div>
 
 
 <script>
@@ -614,7 +614,7 @@ Reset
 </button>
 
 
-<div id="pron-score"></div>
+<div id="pron-score" data-exercise-score data-exercise-id="ch1-pronunciation"></div>
 
 
 

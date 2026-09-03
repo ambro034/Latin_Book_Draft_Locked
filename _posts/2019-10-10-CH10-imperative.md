@@ -320,7 +320,7 @@ You do not need to translate.
     Reset
 </button>
 
-<div id="av-score" class="av-score"></div>
+<div id="av-score" class="av-score" data-exercise-score data-exercise-id="ch10-active-verbs"></div>
 
 <script>
 (function(){
@@ -818,7 +818,7 @@ translate the <strong>new form</strong>, and finally give the new form in
     Reset
 </button>
 
-<div id="pvc-score" class="pvc-score"></div>
+<div id="pvc-score" class="pvc-score" data-exercise-score data-exercise-id="ch10-passive-verb-commands"></div>
 
 <script>
 (function(){

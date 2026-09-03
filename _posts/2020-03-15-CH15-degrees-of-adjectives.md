@@ -328,7 +328,7 @@ Then <strong>translate the new form</strong>.
     Reset
 </button>
 
-<div id="amo-score" class="amo-score"></div>
+<div id="amo-score" class="amo-score" data-exercise-score data-exercise-id="ch15-adjective-matching"></div>
 
 <script>
 (function(){
@@ -557,7 +557,7 @@ Then <strong>translate the new form</strong>.
     Reset
 </button>
 
-<div id="reg-score" class="reg-score"></div>
+<div id="reg-score" class="reg-score" data-exercise-score data-exercise-id="ch15-regular-comparison"></div>
 
 <script>
 (function(){
@@ -765,7 +765,7 @@ Then <strong>translate the new form</strong>.
     Reset
 </button>
 
-<div id="cap-score" class="cap-score"></div>
+<div id="cap-score" class="cap-score" data-exercise-score data-exercise-id="ch15-comparative-analysis"></div>
 
 <script>
 (function(){
@@ -994,7 +994,7 @@ Then make the requested change while <strong>keeping everything else the same</s
     Reset
 </button>
 
-<div id="mixv-score" class="mixv-score"></div>
+<div id="mixv-score" class="mixv-score" data-exercise-score data-exercise-id="ch15-mixed-vocabulary"></div>
 
 <script>
 (function(){
@@ -1227,7 +1227,7 @@ the same. Then translate the new form.
     Reset
 </button>
 
-<div id="comp-score" class="comp-score"></div>
+<div id="comp-score" class="comp-score" data-exercise-score data-exercise-id="ch15-comparison-translation"></div>
 
 <script>
 (function(){

@@ -267,7 +267,7 @@ relative-clause word a second time removes it from the clause.
     Reset
 </button>
 
-<div id="rel-score" class="rel-score"></div>
+<div id="rel-score" class="rel-score" data-exercise-score data-exercise-id="ch12-relative-clauses"></div>
 
 
 <script>
@@ -1024,7 +1024,7 @@ can reasonably be divided somewhat differently.
     Reset
 </button>
 
-<div id="seg12-score" class="seg12-score"></div>
+<div id="seg12-score" class="seg12-score" data-exercise-score data-exercise-id="ch12-clause-segmentation"></div>
 
 <script>
 (function(){

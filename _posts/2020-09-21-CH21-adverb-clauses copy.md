@@ -307,7 +307,7 @@ in the sentence. Some sentences contain more than one subjunctive, so
     Reset
 </button>
 
-<div id="su-score" class="su-score"></div>
+<div id="su-score" class="su-score" data-exercise-score data-exercise-id="ch21-subjunctive-use"></div>
 
 
 <script>
@@ -742,7 +742,7 @@ or subjunctive.
     Reset
 </button>
 
-<div id="vtm-score" class="vtm-score"></div>
+<div id="vtm-score" class="vtm-score" data-exercise-score data-exercise-id="ch21-verb-tense-mood"></div>
 
 
 <script>

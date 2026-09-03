@@ -189,7 +189,7 @@ Pattern Recognition
 <button type="button" class="rn-control-button" onclick="checkRnQuiz()">Check Answers</button>
 <button type="button" class="rn-control-button" onclick="resetRnQuiz()">Reset</button>
 
-<div id="rn-score" class="rn-score"></div>
+<div id="rn-score" class="rn-score" data-exercise-score data-exercise-id="ch8-roman-numerals"></div>
 
 <script>
 (function(){
@@ -409,7 +409,7 @@ and the <strong>Arabic numerals to Roman numerals</strong>.
 <button type="button" class="rc-control-button" onclick="checkRcQuiz()">Check Answers</button>
 <button type="button" class="rc-control-button" onclick="resetRcQuiz()">Reset</button>
 
-<div id="rc-score" class="rc-score"></div>
+<div id="rc-score" class="rc-score" data-exercise-score data-exercise-id="ch8-roman-counting"></div>
 
 <script>
 (function(){
@@ -674,7 +674,7 @@ buildRcQuiz();
 <button type="button" class="tsp-control-button" onclick="checkTspQuiz()">Check Answers</button>
 <button type="button" class="tsp-control-button" onclick="resetTspQuiz()">Reset</button>
 
-<div id="tsp-score" class="tsp-score"></div>
+<div id="tsp-score" class="tsp-score" data-exercise-score data-exercise-id="ch8-time-space"></div>
 
 <script>
 (function(){
