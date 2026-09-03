@@ -44,6 +44,14 @@
 .chapter-lock-link.chapter-locked {
     opacity: 0.5;
     cursor: not-allowed;
+
+    /*
+    Keep the lock and chapter title together horizontally.
+    */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
 }
 
 .chapter-lock-link.chapter-locked:hover {
@@ -54,20 +62,57 @@
     pointer-events: auto !important;
 }
 
+
+/*
+Lock is its own flex item.
+
+It cannot drop below the title.
+*/
 .chapter-lock-icon {
     display: inline-block;
-    margin-left: 6px;
+    flex: 0 0 auto;
+
+    margin: 0 6px 0 0 !important;
+
     font-size: 0.9em;
-    vertical-align: baseline;
+    line-height: inherit;
+
+    order: 0;
 }
+
+
+/*
+The title occupies the remaining sidebar width.
+
+If a long chapter title wraps, only the title wraps.
+The lock stays at the upper left.
+*/
+.chapter-lock-title {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+
+    order: 1;
+}
+
 
 .chapter-unlocked .chapter-lock-icon {
-    display: none;
+    display: none !important;
 }
 
-.chapter-locked .chapter-lock-icon {
-    display: inline-block;
+
+/*
+Unlocked links do not need flex positioning.
+*/
+.chapter-lock-link.chapter-unlocked {
+    display: block !important;
 }
+
+
+.chapter-locked .chapter-lock-icon {
+    display: inline-block !important;
+}
+
 
 li.chapter.chapter-is-locked > a {
     cursor: not-allowed;
