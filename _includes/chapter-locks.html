@@ -19,10 +19,14 @@
      Chapter 1 is always unlocked.
      Chapter N requires Chapter N-1 to be complete.
 
-     Exercise completion is earned when a detected score
-     element reports a perfect score, such as:
+     Exercise completion is earned ONLY when a detected score
+     element reports an exact perfect score, such as:
 
          Score: 10 / 10
+
+     A checked non-perfect score clears completion for that
+     exercise. A chapter is complete only when every required
+     exercise is currently stored as perfectly completed.
 
      ============================================================ -->
 
@@ -686,6 +690,10 @@ li.chapter.chapter-is-locked > a {
         }
 
 
+        /*
+        Chapter 1 is always unlocked.
+        */
+
         if (chapterNumber === 1) {
 
             return true;
@@ -693,38 +701,18 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        if (
-            storageGet(
-                chapterUnlockKey(
-                    chapterNumber
-                )
-            ) === "true"
-        ) {
+        /*
+        Every later chapter is unlocked ONLY by validated
+        completion of the immediately preceding chapter.
 
-            return true;
+        Do not use a separate persistent "-unlocked" key here.
+        That shortcut can preserve an invalid unlock after a
+        failed exercise attempt.
+        */
 
-        }
-
-
-        if (
-            isChapterComplete(
-                chapterNumber - 1
-            )
-        ) {
-
-            storageSet(
-                chapterUnlockKey(
-                    chapterNumber
-                ),
-                "true"
-            );
-
-            return true;
-
-        }
-
-
-        return false;
+        return isChapterComplete(
+            chapterNumber - 1
+        );
 
     }
 
@@ -771,14 +759,6 @@ li.chapter.chapter-is-locked > a {
             return false;
 
         }
-
-
-        storageSet(
-            chapterUnlockKey(
-                chapterNumber + 1
-            ),
-            "true"
-        );
 
 
         updateAllChapterNavigation();
@@ -972,7 +952,7 @@ li.chapter.chapter-is-locked > a {
                 possible,
 
             perfect:
-                earned >= possible
+                earned === possible
         };
 
     }
@@ -1219,6 +1199,22 @@ li.chapter.chapter-is-locked > a {
 
 
 
+    function clearExerciseComplete(
+        chapterNumber,
+        exerciseId
+    ) {
+
+        storageRemove(
+            exerciseCompletionKey(
+                chapterNumber,
+                exerciseId
+            )
+        );
+
+    }
+
+
+
     /* ========================================================
        CHECK CURRENT SCORE ELEMENTS
        ======================================================== */
@@ -1254,12 +1250,37 @@ li.chapter.chapter-is-locked > a {
                     );
 
 
-                if (
-                    score &&
-                    score.perfect
-                ) {
+                /*
+                No displayed score means the exercise has not
+                been checked during this page state. Do not
+                change its stored completion.
+                */
+
+                if (!score) {
+
+                    return;
+
+                }
+
+
+                /*
+                An exercise is complete ONLY when every point is
+                correct. Any checked non-perfect score explicitly
+                removes completion for that exercise.
+                */
+
+                if (score.perfect) {
 
                     markExerciseComplete(
+                        chapterNumber,
+                        exercise.id
+                    );
+
+                }
+
+                else {
+
+                    clearExerciseComplete(
                         chapterNumber,
                         exercise.id
                     );
@@ -1649,7 +1670,8 @@ li.chapter.chapter-is-locked > a {
 
 
         if (
-            progress.completed >=
+            progress.total > 0 &&
+            progress.completed ===
             progress.total
         ) {
 
@@ -1674,6 +1696,23 @@ li.chapter.chapter-is-locked > a {
         }
 
         else {
+
+            /*
+            If even one required exercise is incomplete, this
+            chapter is NOT complete. Remove any stale completion
+            value that may have been created by an earlier version
+            of the locking code.
+            */
+
+            storageRemove(
+                chapterCompletionKey(
+                    chapterNumber
+                )
+            );
+
+
+            updateAllChapterNavigation();
+
 
             if (statusElement) {
 
@@ -2658,12 +2697,6 @@ li.chapter.chapter-is-locked > a {
        ======================================================== */
 
     function initializeChapterLocks() {
-
-        storageSet(
-            chapterUnlockKey(1),
-            "true"
-        );
-
 
         /*
         Direct URL protection comes first.
