@@ -34,10 +34,6 @@
     display: inline-block;
 }
 
-/*
-Prevents a locked item from looking like a normal active link
-while preserving the surrounding GitBook theme.
-*/
 li.chapter.chapter-is-locked > a {
     cursor: not-allowed;
 }
@@ -51,8 +47,6 @@ li.chapter.chapter-is-locked > a {
    EXISTING GITBOOK SCROLL FUNCTIONS
    ============================================================ */
 
-// Fixes the page links scroll problem on both desktop
-// and mobile browsers.
 function pageScrollToTop(element) {
 
     $('div.body-inner').animate({
@@ -69,7 +63,6 @@ function pageScrollToTop(element) {
 }
 
 
-// Fixes the anchor links scroll problem on mobile browsers.
 function mobilePageScrollToAnchor(element) {
 
     $(element)
@@ -118,17 +111,19 @@ function mobilePageScrollToAnchor(element) {
     ------------------------------------------------------------
     STORAGE FORMAT
 
-    Chapter 1 complete:
+    Chapter 1:
+        always unlocked
+
+    After Chapter 1 is completed:
         latin-chapter-1-complete = true
 
-    Chapter 2 complete:
+    After Chapter 2 is completed:
         latin-chapter-2-complete = true
 
     etc.
 
-    Chapter 1 is always unlocked.
-
-    Chapter N becomes unlocked when Chapter N-1 is complete.
+    Chapter N becomes accessible when Chapter N-1
+    has been completed.
     ------------------------------------------------------------
     */
 
@@ -158,56 +153,23 @@ function mobilePageScrollToAnchor(element) {
     function isChapterUnlocked(chapterNumber) {
 
         /*
-        Chapter 1 is always accessible.
+        Chapter 1 is always available.
         */
 
         if (chapterNumber <= 1) {
+
             return true;
+
         }
 
 
         /*
         Every later chapter requires completion
-        of the immediately preceding chapter.
+        of the preceding chapter.
         */
 
         return isChapterComplete(
             chapterNumber - 1
-        );
-
-    }
-
-
-
-    function getChapterNumberFromTitle(title) {
-
-        if (!title) {
-            return null;
-        }
-
-
-        /*
-        Matches titles such as:
-
-        Chapter 1. The Basics
-        Chapter 2. Nouns
-        Chapter 10. Something Else
-        */
-
-        const match =
-            title.match(
-                /^\s*Chapter\s+(\d+)\b/i
-            );
-
-
-        if (!match) {
-            return null;
-        }
-
-
-        return parseInt(
-            match[1],
-            10
         );
 
     }
@@ -253,6 +215,10 @@ function mobilePageScrollToAnchor(element) {
                 );
 
 
+            /* =================================================
+               UNLOCKED CHAPTER
+               ================================================= */
+
             if (unlocked) {
 
                 link.classList.remove(
@@ -272,6 +238,25 @@ function mobilePageScrollToAnchor(element) {
                 );
 
 
+                /*
+                Restore the original chapter URL if this
+                chapter was previously locked.
+                */
+
+                if (
+                    link.dataset.lockedHref
+                ) {
+
+                    link.setAttribute(
+                        "href",
+                        link.dataset.lockedHref
+                    );
+
+                    delete link.dataset.lockedHref;
+
+                }
+
+
                 if (parent) {
 
                     parent.classList.remove(
@@ -281,6 +266,11 @@ function mobilePageScrollToAnchor(element) {
                 }
 
             }
+
+
+            /* =================================================
+               LOCKED CHAPTER
+               ================================================= */
 
             else {
 
@@ -303,6 +293,28 @@ function mobilePageScrollToAnchor(element) {
                 );
 
 
+                /*
+                Save the real URL before removing it.
+
+                This prevents GitBook's own navigation
+                system from loading the chapter even if
+                another click handler fires.
+                */
+
+                if (
+                    link.hasAttribute("href")
+                ) {
+
+                    link.dataset.lockedHref =
+                        link.getAttribute("href");
+
+                    link.removeAttribute(
+                        "href"
+                    );
+
+                }
+
+
                 if (parent) {
 
                     parent.classList.add(
@@ -319,6 +331,10 @@ function mobilePageScrollToAnchor(element) {
 
 
 
+    /* ========================================================
+       LOCKED LINK CLICK HANDLER
+       ======================================================== */
+
     function handleLockedChapterClick(event) {
 
         const link =
@@ -328,7 +344,9 @@ function mobilePageScrollToAnchor(element) {
 
 
         if (!link) {
+
             return;
+
         }
 
 
@@ -339,11 +357,20 @@ function mobilePageScrollToAnchor(element) {
         ) {
 
             return;
+
         }
 
 
+        /*
+        Stop all navigation before GitBook or another
+        script can process the click.
+        */
+
         event.preventDefault();
+
         event.stopPropagation();
+
+        event.stopImmediatePropagation();
 
 
         const chapterNumber =
@@ -363,11 +390,13 @@ function mobilePageScrollToAnchor(element) {
 
 
             window.alert(
+
                 "Chapter " +
                 chapterNumber +
                 " is locked. Complete all required exercises in Chapter " +
                 requiredChapter +
                 " to unlock it."
+
             );
 
         }
@@ -380,13 +409,20 @@ function mobilePageScrollToAnchor(element) {
 
         }
 
+
+        return false;
+
     }
 
 
 
+    /* ========================================================
+       PUBLIC FUNCTIONS
+       ======================================================== */
+
     /*
-    Allows chapter pages to trigger a navigation refresh
-    immediately after completion.
+    These allow chapter exercises to refresh the
+    sidebar immediately after completion.
     */
 
     window.updateChapterNavigation =
@@ -402,12 +438,26 @@ function mobilePageScrollToAnchor(element) {
 
 
 
+    /* ========================================================
+       CLICK LISTENER
+
+       true = capture phase
+
+       This means the locking handler runs BEFORE
+       GitBook's own navigation handlers.
+       ======================================================== */
+
     document.addEventListener(
         "click",
-        handleLockedChapterClick
+        handleLockedChapterClick,
+        true
     );
 
 
+
+    /* ========================================================
+       INITIAL PAGE LOAD
+       ======================================================== */
 
     if (
         document.readyState ===
@@ -428,10 +478,13 @@ function mobilePageScrollToAnchor(element) {
     }
 
 
-    /*
-    If completion is changed in another tab,
-    update this tab automatically.
-    */
+
+    /* ========================================================
+       MULTIPLE TAB SUPPORT
+
+       If progress changes in another browser tab,
+       refresh the sidebar automatically.
+       ======================================================== */
 
     window.addEventListener(
         "storage",
@@ -649,8 +702,8 @@ aria-hidden="true">
 
 
 <!--
-Non-chapter posts/pages remain normal links.
-They are not affected by chapter progression.
+Non-chapter posts and pages remain normal links.
+They are not affected by the chapter progression system.
 -->
 
 <a
@@ -791,7 +844,7 @@ data-path="{{site.baseurl}}{{post.url}}">
 
 
 <!-- ============================================================
-     LINK
+     CHAPTER LINK
      ============================================================ -->
 
 {% if first_word == "Chapter" and chapter_number > 0 %}
