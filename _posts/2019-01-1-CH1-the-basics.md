@@ -57,213 +57,6 @@ Latin was centered around clauses. A clause in linguistic terms is anything with
 {: .block-warning }
 
 
-<!-- ============================================================
-     CHAPTER 1 COMPLETION TRACKER
-     ============================================================ -->
-
-<style>
-.ch1-progress-container {
-  max-width: 700px;
-  margin: 20px auto;
-  padding: 16px 20px;
-  border: 2px solid #b8b8b8;
-  border-radius: 8px;
-  background: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
-  box-sizing: border-box;
-}
-
-.ch1-progress-container * {
-  box-sizing: border-box;
-}
-
-.ch1-progress-title {
-  margin: 0 0 10px;
-  font-size: 1.1em;
-  font-weight: bold;
-}
-
-.ch1-progress-bar {
-  width: 100%;
-  height: 14px;
-  overflow: hidden;
-  border-radius: 7px;
-  background: #e6e6e6;
-}
-
-.ch1-progress-fill {
-  width: 0%;
-  height: 100%;
-  background: #198754;
-  transition: width 0.3s ease;
-}
-
-.ch1-progress-text {
-  margin-top: 10px;
-  line-height: 1.5;
-}
-
-.ch1-progress-complete {
-  color: #0b7a0b;
-  font-weight: bold;
-}
-</style>
-
-
-<script>
-(function(){
-
-const ch1RequiredExercises = [
-  "ch1-subject-predicate",
-  "ch1-pronunciation"
-];
-
-
-function ch1StorageKey(exerciseId){
-
-  return "latin-complete-" + exerciseId;
-
-}
-
-
-function ch1IsExerciseComplete(exerciseId){
-
-  return localStorage.getItem(
-    ch1StorageKey(exerciseId)
-  ) === "true";
-
-}
-
-
-function ch1IsComplete(){
-
-  return ch1RequiredExercises.every(
-    ch1IsExerciseComplete
-  );
-
-}
-
-
-function ch1UpdateProgress(){
-
-  const completed =
-    ch1RequiredExercises.filter(
-      ch1IsExerciseComplete
-    ).length;
-
-
-  const percent =
-    Math.round(
-      (completed / ch1RequiredExercises.length) * 100
-    );
-
-
-  const fill =
-    document.getElementById(
-      "ch1-progress-fill"
-    );
-
-  const text =
-    document.getElementById(
-      "ch1-progress-text"
-    );
-
-
-  if(fill){
-
-    fill.style.width =
-      percent + "%";
-
-  }
-
-
-  if(text){
-
-    if(
-      completed ===
-      ch1RequiredExercises.length
-    ){
-
-      text.innerHTML =
-        `<span class="ch1-progress-complete">
-        ✓ Chapter 1 complete! Chapter 2 is unlocked.
-        </span>`;
-
-    }
-
-    else{
-
-      text.innerHTML =
-        `${completed} of ${ch1RequiredExercises.length} required exercises completed.`;
-
-    }
-
-  }
-
-
-  if(ch1IsComplete()){
-
-    localStorage.setItem(
-      "latin-chapter-1-complete",
-      "true"
-    );
-
-  }
-
-}
-
-
-window.markChapter1ExerciseComplete =
-function(exerciseId){
-
-  if(
-    !ch1RequiredExercises.includes(
-      exerciseId
-    )
-  ){
-
-    return;
-
-  }
-
-
-  localStorage.setItem(
-    ch1StorageKey(exerciseId),
-    "true"
-  );
-
-
-  ch1UpdateProgress();
-
-};
-
-
-window.isChapter1Complete =
-function(){
-
-  return ch1IsComplete();
-
-};
-
-
-window.updateChapter1Progress =
-function(){
-
-  ch1UpdateProgress();
-
-};
-
-
-document.addEventListener(
-  "DOMContentLoaded",
-  ch1UpdateProgress
-);
-
-})();
-</script>
-
-
-
 <!-- Subject predicate  -->
 
 <div class="sp-quiz-container">
@@ -543,6 +336,7 @@ element.classList.remove(
   "sp-subject"
 );
 
+
 element.classList.add(
   "sp-predicate"
 );
@@ -695,29 +489,6 @@ document.getElementById(
   "sp-score"
 ).innerHTML =
 `Score: ${score} / ${spQuestions.length}`;
-
-
-/* ============================================================
-   MARK EXERCISE COMPLETE ONLY ON PERFECT SCORE
-   ============================================================ */
-
-if(
-  score ===
-  spQuestions.length
-){
-
-  if(
-    typeof window.markChapter1ExerciseComplete ===
-    "function"
-  ){
-
-    window.markChapter1ExerciseComplete(
-      "ch1-subject-predicate"
-    );
-
-  }
-
-}
 
 };
 
@@ -1023,29 +794,6 @@ document.getElementById(
 ).innerHTML =
 `Score: ${score} / ${pronQuestions.length}`;
 
-
-/* ============================================================
-   MARK EXERCISE COMPLETE ONLY ON PERFECT SCORE
-   ============================================================ */
-
-if(
-  score ===
-  pronQuestions.length
-){
-
-  if(
-    typeof window.markChapter1ExerciseComplete ===
-    "function"
-  ){
-
-    window.markChapter1ExerciseComplete(
-      "ch1-pronunciation"
-    );
-
-  }
-
-}
-
 };
 
 
@@ -1073,53 +821,6 @@ buildPronQuiz();
 </div>
 
 <!-- Pronouncation END -->
-
-
-
-<!-- ============================================================
-     CHAPTER 1 PROGRESS DISPLAY
-     ============================================================ -->
-
-<div class="ch1-progress-container">
-
-  <div class="ch1-progress-title">
-    Chapter 1 Progress
-  </div>
-
-  <div
-    class="ch1-progress-bar"
-    role="progressbar"
-    aria-label="Chapter 1 completion progress">
-
-    <div
-      id="ch1-progress-fill"
-      class="ch1-progress-fill">
-    </div>
-
-  </div>
-
-  <div
-    id="ch1-progress-text"
-    class="ch1-progress-text">
-    0 of 2 required exercises completed.
-  </div>
-
-</div>
-
-
-<script>
-
-if(
-  typeof window.updateChapter1Progress ===
-  "function"
-){
-
-  window.updateChapter1Progress();
-
-}
-
-</script>
-
 
 
 >**Note on your Latin education journey**: when you learned your first language, you likely did not do it over a few months in a classroom. You certainly didn’t sit in a room for several hours studying for a big exam. Try to approach Latin like you would to learn the piano or to work out. Daily repetition is much more effective than occasional cramming sessions.
