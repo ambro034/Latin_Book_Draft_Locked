@@ -1,18 +1,29 @@
 <!-- ============================================================
      LATIN BY PATTERNS
-     CENTRAL CHAPTER LOCKING SYSTEM
+     CENTRAL CHAPTER LOCKING + PROGRESS SYSTEM
 
      File:
      _includes/chapter-locks.html
 
-     STORAGE CONVENTION:
-     latin-chapter-1-complete
-     latin-chapter-2-complete
-     latin-chapter-3-complete
-     etc.
+     STORAGE CONVENTIONS:
+
+     Chapter completion:
+         latin-chapter-1-complete
+         latin-chapter-2-complete
+         latin-chapter-3-complete
+         etc.
+
+     Exercise completion:
+         latin-exercise-complete-chapter-N-EXERCISEID
 
      Chapter 1 is always unlocked.
      Chapter N requires Chapter N-1 to be complete.
+
+     Exercise completion is earned when a detected score
+     element reports a perfect score, such as:
+
+         Score: 10 / 10
+
      ============================================================ -->
 
 
@@ -91,6 +102,82 @@ li.chapter.chapter-is-locked > a {
 
 
 /* ============================================================
+   CHAPTER PROGRESS PANEL
+   ============================================================ */
+
+.chapter-progress-panel {
+    max-width: 700px;
+    margin: 32px auto 24px;
+    padding: 18px 20px;
+
+    background: #ffffff;
+
+    border: 2px solid #198754;
+    border-radius: 8px;
+
+    box-sizing: border-box;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+.chapter-progress-heading {
+    margin: 0 0 8px;
+
+    color: #0f5132;
+
+    font-size: 1.08em;
+    font-weight: bold;
+}
+
+.chapter-progress-text {
+    margin: 0 0 12px;
+
+    color: #333333;
+
+    line-height: 1.45;
+}
+
+.chapter-progress-track {
+    width: 100%;
+    height: 16px;
+
+    background: #e9ecef;
+
+    border-radius: 999px;
+
+    overflow: hidden;
+}
+
+.chapter-progress-fill {
+    width: 0%;
+    height: 100%;
+
+    background: #198754;
+
+    border-radius: 999px;
+
+    transition:
+        width 0.3s ease;
+}
+
+.chapter-progress-status {
+    margin-top: 10px;
+
+    color: #555555;
+
+    font-size: 0.95em;
+}
+
+.chapter-progress-status.chapter-progress-complete {
+    color: #0f5132;
+    font-weight: bold;
+}
+
+
+/* ============================================================
    CHAPTER LOCK MODAL OVERLAY
    ============================================================ */
 
@@ -164,7 +251,6 @@ li.chapter.chapter-is-locked > a {
 
 .chapter-lock-modal-icon {
     display: inline-block;
-
     margin-right: 6px;
 }
 
@@ -235,7 +321,7 @@ li.chapter.chapter-is-locked > a {
 
 
 /* ============================================================
-   SMALL-SCREEN MODAL ADJUSTMENTS
+   SMALL-SCREEN ADJUSTMENTS
    ============================================================ */
 
 @media (max-width: 520px) {
@@ -261,6 +347,13 @@ li.chapter.chapter-is-locked > a {
             0
             16px
             16px;
+    }
+
+    .chapter-progress-panel {
+        margin:
+            24px
+            10px
+            20px;
     }
 
 }
@@ -344,10 +437,45 @@ li.chapter.chapter-is-locked > a {
 
     let modalSourceElement = null;
 
+    let progressObserver = null;
+
+    let detectedExercises = [];
+
 
 
     /* ========================================================
-       STORAGE KEY
+       CURRENT CHAPTER
+       ======================================================== */
+
+    function getCurrentChapterNumber() {
+
+        const chapterNumber =
+            parseInt(
+                document.body.dataset.currentChapter,
+                10
+            );
+
+
+        if (
+            !chapterNumber ||
+            Number.isNaN(
+                chapterNumber
+            )
+        ) {
+
+            return null;
+
+        }
+
+
+        return chapterNumber;
+
+    }
+
+
+
+    /* ========================================================
+       STORAGE KEYS
        ======================================================== */
 
     function chapterCompletionKey(
@@ -359,6 +487,98 @@ li.chapter.chapter-is-locked > a {
             chapterNumber +
             "-complete"
         );
+
+    }
+
+
+
+    function exerciseCompletionKey(
+        chapterNumber,
+        exerciseId
+    ) {
+
+        return (
+            "latin-exercise-complete-chapter-" +
+            chapterNumber +
+            "-" +
+            exerciseId
+        );
+
+    }
+
+
+
+    /* ========================================================
+       SAFE LOCAL STORAGE
+       ======================================================== */
+
+    function storageGet(
+        key
+    ) {
+
+        try {
+
+            return localStorage.getItem(
+                key
+            );
+
+        }
+
+        catch (error) {
+
+            return null;
+
+        }
+
+    }
+
+
+
+    function storageSet(
+        key,
+        value
+    ) {
+
+        try {
+
+            localStorage.setItem(
+                key,
+                value
+            );
+
+            return true;
+
+        }
+
+        catch (error) {
+
+            return false;
+
+        }
+
+    }
+
+
+
+    function storageRemove(
+        key
+    ) {
+
+        try {
+
+            localStorage.removeItem(
+                key
+            );
+
+            return true;
+
+        }
+
+        catch (error) {
+
+            return false;
+
+        }
 
     }
 
@@ -382,23 +602,13 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        try {
-
-            return (
-                localStorage.getItem(
-                    chapterCompletionKey(
-                        chapterNumber
-                    )
-                ) === "true"
-            );
-
-        }
-
-        catch (error) {
-
-            return false;
-
-        }
+        return (
+            storageGet(
+                chapterCompletionKey(
+                    chapterNumber
+                )
+            ) === "true"
+        );
 
     }
 
@@ -454,9 +664,14 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        try {
+        const alreadyComplete =
+            isChapterComplete(
+                chapterNumber
+            );
 
-            localStorage.setItem(
+
+        const stored =
+            storageSet(
 
                 chapterCompletionKey(
                     chapterNumber
@@ -466,39 +681,39 @@ li.chapter.chapter-is-locked > a {
 
             );
 
-        }
 
-        catch (error) {
+        if (!stored) {
 
             return false;
 
         }
 
 
-        /*
-        Refresh all navigation immediately.
-        */
-
         updateAllChapterNavigation();
 
 
         /*
-        Also emit an event so other widgets can respond.
+        Only dispatch the completion event the first
+        time the chapter becomes complete.
         */
 
-        document.dispatchEvent(
+        if (!alreadyComplete) {
 
-            new CustomEvent(
-                "latinChapterCompleted",
-                {
-                    detail: {
-                        chapter:
-                            chapterNumber
+            document.dispatchEvent(
+
+                new CustomEvent(
+                    "latinChapterCompleted",
+                    {
+                        detail: {
+                            chapter:
+                                chapterNumber
+                        }
                     }
-                }
-            )
+                )
 
-        );
+            );
+
+        }
 
 
         return true;
@@ -508,7 +723,7 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       OPTIONAL CHAPTER COMPLETION RESET
+       OPTIONAL CHAPTER RESET
        ======================================================== */
 
     function clearChapterComplete(
@@ -525,27 +740,914 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        try {
+        storageRemove(
+            chapterCompletionKey(
+                chapterNumber
+            )
+        );
 
-            localStorage.removeItem(
-                chapterCompletionKey(
-                    chapterNumber
+
+        updateAllChapterNavigation();
+
+        updateChapterProgress();
+
+
+        return true;
+
+    }
+
+
+
+    /* ========================================================
+       NORMALIZE EXERCISE ID
+       ======================================================== */
+
+    function normalizeExerciseId(
+        value
+    ) {
+
+        return String(
+            value || ""
+        )
+        .trim()
+        .toLowerCase()
+        .replace(
+            /[^a-z0-9_-]+/g,
+            "-"
+        )
+        .replace(
+            /^-+|-+$/g,
+            ""
+        );
+
+    }
+
+
+
+    /* ========================================================
+       DETECT SCORE FROM TEXT
+       ======================================================== */
+
+    function parseScoreText(
+        text
+    ) {
+
+        if (!text) {
+
+            return null;
+
+        }
+
+
+        /*
+        Accepted forms include:
+
+        Score: 10 / 10
+        Score: 10/10
+        Your Score: 8 / 10
+        8 / 10
+
+        The final fraction found in the string is used.
+        */
+
+        const matches =
+            String(text).match(
+                /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g
+            );
+
+
+        if (
+            !matches ||
+            matches.length === 0
+        ) {
+
+            return null;
+
+        }
+
+
+        const finalMatch =
+            matches[
+                matches.length - 1
+            ];
+
+
+        const pieces =
+            finalMatch.match(
+                /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/
+            );
+
+
+        if (!pieces) {
+
+            return null;
+
+        }
+
+
+        const earned =
+            Number(
+                pieces[1]
+            );
+
+
+        const possible =
+            Number(
+                pieces[2]
+            );
+
+
+        if (
+            !Number.isFinite(
+                earned
+            ) ||
+            !Number.isFinite(
+                possible
+            ) ||
+            possible <= 0
+        ) {
+
+            return null;
+
+        }
+
+
+        return {
+            earned:
+                earned,
+
+            possible:
+                possible,
+
+            perfect:
+                earned >= possible
+        };
+
+    }
+
+
+
+    /* ========================================================
+       IDENTIFY SCORE ELEMENTS
+       ======================================================== */
+
+    function findScoreElements() {
+
+        const candidates =
+            Array.from(
+                document.querySelectorAll(
+                    [
+                        '[id$="-score"]',
+                        '[class$="-score"]',
+                        '[class*=" score"]',
+                        '[data-score]',
+                        '[data-exercise-score]'
+                    ].join(",")
+                )
+            );
+
+
+        /*
+        Also inspect elements whose current text visibly
+        contains a score fraction. This gives us a fallback
+        for existing exercises that did not use a standardized
+        score ID/class.
+        */
+
+        const textCandidates =
+            Array.from(
+                document.querySelectorAll(
+                    "div, p, span"
+                )
+            )
+            .filter(
+                function(element){
+
+                    const text =
+                        element.textContent ||
+                        "";
+
+
+                    return (
+                        /score/i.test(
+                            text
+                        ) &&
+                        /\d+\s*\/\s*\d+/.test(
+                            text
+                        )
+                    );
+
+                }
+            );
+
+
+        const combined =
+            candidates.concat(
+                textCandidates
+            );
+
+
+        const unique =
+            Array.from(
+                new Set(
+                    combined
+                )
+            );
+
+
+        /*
+        Exclude the progress widget itself.
+        */
+
+        return unique.filter(
+            function(element){
+
+                return !element.closest(
+                    ".chapter-progress-panel"
+                );
+
+            }
+        );
+
+    }
+
+
+
+    /* ========================================================
+       BUILD EXERCISE ID
+       ======================================================== */
+
+    function getExerciseId(
+        scoreElement,
+        index
+    ) {
+
+        /*
+        Best option: explicit data attribute.
+        */
+
+        if (
+            scoreElement.dataset &&
+            scoreElement.dataset.exerciseId
+        ) {
+
+            return normalizeExerciseId(
+                scoreElement.dataset.exerciseId
+            );
+
+        }
+
+
+        /*
+        Existing ID such as:
+
+        pron-score
+        sp-score
+        func-score
+        rel-score
+        */
+
+        if (scoreElement.id) {
+
+            return normalizeExerciseId(
+                scoreElement.id
+            );
+
+        }
+
+
+        /*
+        Try to find an ancestor widget ID.
+        */
+
+        const ancestorWithId =
+            scoreElement.closest(
+                "[id]"
+            );
+
+
+        if (
+            ancestorWithId &&
+            ancestorWithId.id
+        ) {
+
+            return normalizeExerciseId(
+                ancestorWithId.id
+            );
+
+        }
+
+
+        /*
+        Fall back to DOM order.
+        */
+
+        return (
+            "exercise-" +
+            (index + 1)
+        );
+
+    }
+
+
+
+    /* ========================================================
+       SCAN CHAPTER EXERCISES
+       ======================================================== */
+
+    function detectChapterExercises() {
+
+        const scoreElements =
+            findScoreElements();
+
+
+        const exercises = [];
+
+        const usedIds =
+            new Set();
+
+
+        scoreElements.forEach(
+            function(
+                element,
+                index
+            ){
+
+                let exerciseId =
+                    getExerciseId(
+                        element,
+                        index
+                    );
+
+
+                /*
+                Prevent accidental duplicate IDs if two
+                score containers happen to share an ID-like
+                ancestor.
+                */
+
+                const baseId =
+                    exerciseId;
+
+
+                let suffix = 2;
+
+
+                while (
+                    usedIds.has(
+                        exerciseId
+                    )
+                ) {
+
+                    exerciseId =
+                        baseId +
+                        "-" +
+                        suffix;
+
+                    suffix += 1;
+
+                }
+
+
+                usedIds.add(
+                    exerciseId
+                );
+
+
+                exercises.push({
+
+                    id:
+                        exerciseId,
+
+                    element:
+                        element
+
+                });
+
+            }
+        );
+
+
+        detectedExercises =
+            exercises;
+
+
+        return exercises;
+
+    }
+
+
+
+    /* ========================================================
+       EXERCISE COMPLETION STORAGE
+       ======================================================== */
+
+    function isExerciseComplete(
+        chapterNumber,
+        exerciseId
+    ) {
+
+        return (
+            storageGet(
+                exerciseCompletionKey(
+                    chapterNumber,
+                    exerciseId
+                )
+            ) === "true"
+        );
+
+    }
+
+
+
+    function markExerciseComplete(
+        chapterNumber,
+        exerciseId
+    ) {
+
+        storageSet(
+
+            exerciseCompletionKey(
+                chapterNumber,
+                exerciseId
+            ),
+
+            "true"
+
+        );
+
+    }
+
+
+
+    /* ========================================================
+       CHECK CURRENT SCORE ELEMENTS
+       ======================================================== */
+
+    function processExerciseScores() {
+
+        const chapterNumber =
+            getCurrentChapterNumber();
+
+
+        if (!chapterNumber) {
+
+            return;
+
+        }
+
+
+        if (
+            detectedExercises.length === 0
+        ) {
+
+            detectChapterExercises();
+
+        }
+
+
+        detectedExercises.forEach(
+            function(exercise){
+
+                const score =
+                    parseScoreText(
+                        exercise.element.textContent
+                    );
+
+
+                if (
+                    score &&
+                    score.perfect
+                ) {
+
+                    markExerciseComplete(
+                        chapterNumber,
+                        exercise.id
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+
+    /* ========================================================
+       GET EXERCISE PROGRESS
+       ======================================================== */
+
+    function getExerciseProgress() {
+
+        const chapterNumber =
+            getCurrentChapterNumber();
+
+
+        if (!chapterNumber) {
+
+            return null;
+
+        }
+
+
+        if (
+            detectedExercises.length === 0
+        ) {
+
+            detectChapterExercises();
+
+        }
+
+
+        let completed = 0;
+
+
+        detectedExercises.forEach(
+            function(exercise){
+
+                if (
+                    isExerciseComplete(
+                        chapterNumber,
+                        exercise.id
+                    )
+                ) {
+
+                    completed += 1;
+
+                }
+
+            }
+        );
+
+
+        return {
+
+            chapterNumber:
+                chapterNumber,
+
+            total:
+                detectedExercises.length,
+
+            completed:
+                completed
+
+        };
+
+    }
+
+
+
+    /* ========================================================
+       CREATE CHAPTER PROGRESS PANEL
+       ======================================================== */
+
+    function ensureProgressPanel() {
+
+        const chapterNumber =
+            getCurrentChapterNumber();
+
+
+        if (!chapterNumber) {
+
+            return null;
+
+        }
+
+
+        let panel =
+            document.getElementById(
+                "chapter-progress-panel"
+            );
+
+
+        if (panel) {
+
+            return panel;
+
+        }
+
+
+        panel =
+            document.createElement(
+                "section"
+            );
+
+
+        panel.id =
+            "chapter-progress-panel";
+
+
+        panel.className =
+            "chapter-progress-panel";
+
+
+        panel.setAttribute(
+            "aria-label",
+            "Chapter progress"
+        );
+
+
+        panel.innerHTML =
+            '<div class="chapter-progress-heading">' +
+                'Chapter Progress' +
+            '</div>' +
+
+            '<p ' +
+                'id="chapter-progress-text" ' +
+                'class="chapter-progress-text">' +
+            '</p>' +
+
+            '<div ' +
+                'class="chapter-progress-track" ' +
+                'role="progressbar" ' +
+                'aria-valuemin="0" ' +
+                'aria-valuemax="100" ' +
+                'aria-valuenow="0">' +
+
+                '<div ' +
+                    'id="chapter-progress-fill" ' +
+                    'class="chapter-progress-fill">' +
+                '</div>' +
+
+            '</div>' +
+
+            '<div ' +
+                'id="chapter-progress-status" ' +
+                'class="chapter-progress-status">' +
+            '</div>';
+
+
+        /*
+        Put the progress panel at the end of the chapter
+        content but before the previous/next navigation.
+
+        body.html normally renders inside .body-inner.
+        */
+
+        const bodyInner =
+            document.querySelector(
+                ".body-inner"
+            );
+
+
+        if (!bodyInner) {
+
+            return null;
+
+        }
+
+
+        const navigationElement =
+            bodyInner.querySelector(
+                ".navigation"
+            );
+
+
+        if (navigationElement) {
+
+            bodyInner.insertBefore(
+                panel,
+                navigationElement
+            );
+
+        }
+
+        else {
+
+            bodyInner.appendChild(
+                panel
+            );
+
+        }
+
+
+        return panel;
+
+    }
+
+
+
+    /* ========================================================
+       UPDATE CHAPTER PROGRESS PANEL
+       ======================================================== */
+
+    function updateChapterProgress() {
+
+        const chapterNumber =
+            getCurrentChapterNumber();
+
+
+        if (!chapterNumber) {
+
+            return;
+
+        }
+
+
+        processExerciseScores();
+
+
+        const progress =
+            getExerciseProgress();
+
+
+        if (!progress) {
+
+            return;
+
+        }
+
+
+        const panel =
+            ensureProgressPanel();
+
+
+        if (!panel) {
+
+            return;
+
+        }
+
+
+        const textElement =
+            document.getElementById(
+                "chapter-progress-text"
+            );
+
+
+        const fillElement =
+            document.getElementById(
+                "chapter-progress-fill"
+            );
+
+
+        const statusElement =
+            document.getElementById(
+                "chapter-progress-status"
+            );
+
+
+        const progressTrack =
+            panel.querySelector(
+                ".chapter-progress-track"
+            );
+
+
+        /* =====================================================
+           CHAPTER WITH NO DETECTED SCORED EXERCISES
+           ===================================================== */
+
+        if (
+            progress.total === 0
+        ) {
+
+            /*
+            If there are no scored exercises in the chapter,
+            visiting the chapter counts as completing it.
+
+            This prevents review/content-only chapters from
+            permanently blocking the next chapter.
+            */
+
+            markChapterComplete(
+                chapterNumber
+            );
+
+
+            if (textElement) {
+
+                textElement.textContent =
+                    "This chapter contains no required scored exercises.";
+
+            }
+
+
+            if (fillElement) {
+
+                fillElement.style.width =
+                    "100%";
+
+            }
+
+
+            if (progressTrack) {
+
+                progressTrack.setAttribute(
+                    "aria-valuenow",
+                    "100"
+                );
+
+            }
+
+
+            if (statusElement) {
+
+                statusElement.textContent =
+                    "✓ Chapter " +
+                    chapterNumber +
+                    " complete.";
+
+                statusElement.classList.add(
+                    "chapter-progress-complete"
+                );
+
+            }
+
+
+            return;
+
+        }
+
+
+
+        /* =====================================================
+           STANDARD SCORED CHAPTER
+           ===================================================== */
+
+        const percent =
+            Math.round(
+
+                (
+                    progress.completed /
+                    progress.total
+                ) *
+                100
+
+            );
+
+
+        if (textElement) {
+
+            textElement.textContent =
+                progress.completed +
+                " of " +
+                progress.total +
+                " required exercises completed.";
+
+        }
+
+
+        if (fillElement) {
+
+            fillElement.style.width =
+                percent +
+                "%";
+
+        }
+
+
+        if (progressTrack) {
+
+            progressTrack.setAttribute(
+                "aria-valuenow",
+                String(
+                    percent
                 )
             );
 
         }
 
-        catch (error) {
 
-            return false;
+        if (
+            progress.completed >=
+            progress.total
+        ) {
+
+            markChapterComplete(
+                chapterNumber
+            );
+
+
+            if (statusElement) {
+
+                statusElement.textContent =
+                    "✓ Chapter " +
+                    chapterNumber +
+                    " complete. The next chapter is unlocked.";
+
+                statusElement.classList.add(
+                    "chapter-progress-complete"
+                );
+
+            }
 
         }
 
+        else {
 
-        updateAllChapterNavigation();
+            if (statusElement) {
 
+                statusElement.textContent =
+                    "Complete each required exercise with a perfect score to unlock the next chapter.";
 
-        return true;
+                statusElement.classList.remove(
+                    "chapter-progress-complete"
+                );
+
+            }
+
+        }
 
     }
 
@@ -684,11 +1786,6 @@ li.chapter.chapter-is-locked > a {
             "";
 
 
-        /*
-        Return keyboard focus to the control that
-        caused the modal to appear.
-        */
-
         if (modalSourceElement) {
 
             const elementToFocus =
@@ -792,11 +1889,6 @@ li.chapter.chapter-is-locked > a {
             );
 
 
-            /*
-            Restore its real URL if it was removed
-            while the chapter was locked.
-            */
-
             if (
                 link.dataset.lockedHref
             ) {
@@ -847,24 +1939,11 @@ li.chapter.chapter-is-locked > a {
         );
 
 
-        /*
-        Keep the element keyboard-accessible so
-        keyboard users can open the explanation.
-        */
-
         link.setAttribute(
             "tabindex",
             "0"
         );
 
-
-        /*
-        Save the real URL before removing href.
-
-        Removing href is important because it prevents
-        GitBook's own click/navigation handlers from
-        loading the locked chapter.
-        */
 
         if (
             link.hasAttribute(
@@ -1116,20 +2195,11 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        /*
-        Recheck current progress at click time.
-        */
-
         if (
             isChapterUnlocked(
                 chapterNumber
             )
         ) {
-
-            /*
-            Restore href if completion happened after
-            the most recent navigation refresh.
-            */
 
             if (
                 link.dataset.lockedHref
@@ -1210,10 +2280,6 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        /*
-        Recheck progress immediately before navigation.
-        */
-
         if (
             isChapterUnlocked(
                 chapterNumber
@@ -1277,10 +2343,6 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        /*
-        Sidebar chapter link.
-        */
-
         const sidebarLink =
             event.target.closest(
                 ".chapter-lock-link"
@@ -1320,10 +2382,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        Next arrow.
-        */
 
         const nextLink =
             event.target.closest(
@@ -1373,10 +2431,6 @@ li.chapter.chapter-is-locked > a {
         event
     ) {
 
-        /*
-        OK button.
-        */
-
         if (
             event.target.id ===
             "chapter-lock-modal-close"
@@ -1388,11 +2442,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        Clicking the dark background outside the
-        modal closes it.
-        */
 
         if (
             event.target.id ===
@@ -1408,7 +2457,7 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       MODAL KEYBOARD HANDLER
+       MODAL ESCAPE KEY
        ======================================================== */
 
     function handleModalKeydown(
@@ -1453,26 +2502,12 @@ li.chapter.chapter-is-locked > a {
 
     function protectCurrentChapter() {
 
-        /*
-        _layouts/post.html should provide:
-
-        <body data-current-chapter="2">
-
-        for numbered chapter pages.
-        */
-
         const currentChapter =
-            parseInt(
-                document.body.dataset.currentChapter,
-                10
-            );
+            getCurrentChapterNumber();
 
 
         if (
             !currentChapter ||
-            Number.isNaN(
-                currentChapter
-            ) ||
             currentChapter <= 1
         ) {
 
@@ -1480,11 +2515,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        The chapter is legitimate if its prerequisite
-        has already been completed.
-        */
 
         if (
             isChapterUnlocked(
@@ -1496,13 +2526,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        Find the previous-page URL already supplied
-        by _layouts/post.html in the page <head>:
-
-        <link rel="prev" href="...">
-        */
 
         const previousLink =
             document.querySelector(
@@ -1525,12 +2548,6 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        /*
-        Replace rather than assign so pressing the
-        browser Back button does not immediately send
-        the student into the locked page again.
-        */
-
         window.location.replace(
             destination
         );
@@ -1540,26 +2557,63 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       REFRESH AFTER PAGE INTERACTION
+       WATCH SCORE ELEMENTS FOR CHANGES
        ======================================================== */
 
-    function scheduleNavigationRefresh() {
+    function startProgressObserver() {
 
-        /*
-        Exercise Check Answers functions generally update
-        localStorage during their own click handler.
+        if (progressObserver) {
 
-        setTimeout(..., 0) waits until that click handler
-        has finished and then refreshes chapter navigation.
-        */
+            progressObserver.disconnect();
 
-        window.setTimeout(
-            function(){
+        }
 
-                updateAllChapterNavigation();
 
-            },
-            0
+        const bodyInner =
+            document.querySelector(
+                ".body-inner"
+            );
+
+
+        if (!bodyInner) {
+
+            return;
+
+        }
+
+
+        progressObserver =
+            new MutationObserver(
+                function(){
+
+                    window.clearTimeout(
+                        startProgressObserver.updateTimer
+                    );
+
+
+                    startProgressObserver.updateTimer =
+                        window.setTimeout(
+                            function(){
+
+                                detectChapterExercises();
+
+                                updateChapterProgress();
+
+                            },
+                            40
+                        );
+
+                }
+            );
+
+
+        progressObserver.observe(
+            bodyInner,
+            {
+                childList: true,
+                subtree: true,
+                characterData: true
+            }
         );
 
     }
@@ -1573,17 +2627,38 @@ li.chapter.chapter-is-locked > a {
     function initializeChapterLocks() {
 
         /*
-        First prevent a direct URL bypass.
+        Direct URL protection comes first.
         */
 
         protectCurrentChapter();
 
 
         /*
-        Then update all visible navigation controls.
+        Find chapter exercises.
+        */
+
+        detectChapterExercises();
+
+
+        /*
+        Draw/update progress.
+        */
+
+        updateChapterProgress();
+
+
+        /*
+        Lock/unlock navigation.
         */
 
         updateAllChapterNavigation();
+
+
+        /*
+        Watch exercises for future score changes.
+        */
+
+        startProgressObserver();
 
     }
 
@@ -1593,21 +2668,9 @@ li.chapter.chapter-is-locked > a {
        PUBLIC API
        ======================================================== */
 
-    /*
-    Existing exercise widgets can continue to call:
-
-    window.updateChapterNavigation()
-
-    if they already do so.
-    */
-
     window.updateChapterNavigation =
         updateAllChapterNavigation;
 
-
-    /*
-    More explicit alias.
-    */
 
     window.updateAllChapterNavigation =
         updateAllChapterNavigation;
@@ -1615,6 +2678,10 @@ li.chapter.chapter-is-locked > a {
 
     window.updateNextChapterNavigation =
         updateNextChapterNavigation;
+
+
+    window.updateChapterProgress =
+        updateChapterProgress;
 
 
     window.isLatinChapterComplete =
@@ -1645,12 +2712,6 @@ li.chapter.chapter-is-locked > a {
     /* ========================================================
        CAPTURE-PHASE NAVIGATION LISTENERS
        ======================================================== */
-
-    /*
-    Capture phase is important because it lets the
-    locking system stop the click before GitBook's
-    normal navigation scripts process it.
-    */
 
     document.addEventListener(
         "click",
@@ -1697,23 +2758,44 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       REFRESH AFTER EXERCISE CLICKS
+       REFRESH AFTER INTERACTIONS
        ======================================================== */
 
     document.addEventListener(
         "click",
-        scheduleNavigationRefresh
+        function(){
+
+            window.setTimeout(
+                function(){
+
+                    detectChapterExercises();
+
+                    updateChapterProgress();
+
+                    updateAllChapterNavigation();
+
+                },
+                0
+            );
+
+        }
     );
 
 
 
     /* ========================================================
-       CUSTOM CHAPTER-COMPLETION EVENT
+       CUSTOM CHAPTER COMPLETION EVENT
        ======================================================== */
 
     document.addEventListener(
         "latinChapterCompleted",
-        updateAllChapterNavigation
+        function(){
+
+            updateChapterProgress();
+
+            updateAllChapterNavigation();
+
+        }
     );
 
 
@@ -1724,7 +2806,13 @@ li.chapter.chapter-is-locked > a {
 
     window.addEventListener(
         "storage",
-        updateAllChapterNavigation
+        function(){
+
+            updateChapterProgress();
+
+            updateAllChapterNavigation();
+
+        }
     );
 
 
