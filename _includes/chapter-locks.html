@@ -473,6 +473,8 @@ li.chapter.chapter-is-locked > a {
 
     let navigationRefreshTimer = null;
 
+    let pageRefreshRunning = false;
+
     let detectedExercises = [];
 
 
@@ -483,26 +485,166 @@ li.chapter.chapter-is-locked > a {
 
     function getCurrentChapterNumber() {
 
-        const chapterNumber =
+        /*
+        GitBook can change pages without replacing <body>, so
+        data-current-chapter can be stale. Resolve the chapter
+        from the CURRENT rendered page before trusting <body>.
+        */
+
+        const candidates = [];
+
+
+        const bodyInner =
+            document.querySelector(
+                ".body-inner"
+            );
+
+
+        if (bodyInner) {
+
+            const headings =
+                bodyInner.querySelectorAll(
+                    "h1, h2, h3"
+                );
+
+
+            headings.forEach(
+                function(heading){
+
+                    candidates.push(
+                        heading.textContent || ""
+                    );
+
+                }
+            );
+
+        }
+
+
+        candidates.push(
+            document.title || "",
+            window.location.pathname || "",
+            window.location.href || ""
+        );
+
+
+        for (
+            let i = 0;
+            i < candidates.length;
+            i += 1
+        ) {
+
+            const value =
+                String(
+                    candidates[i]
+                );
+
+
+            let match =
+                value.match(
+                    /\bChapter\s+(\d+)\b/i
+                );
+
+
+            if (!match) {
+
+                match =
+                    value.match(
+                        /(?:CH|Chapter)[\s\-_:/]*(\d+)/i
+                    );
+
+            }
+
+
+            if (!match) {
+
+                match =
+                    value.match(
+                        /\/Chapter-(\d+)\//i
+                    );
+
+            }
+
+
+            if (!match) {
+
+                continue;
+
+            }
+
+
+            const chapterNumber =
+                parseInt(
+                    match[1],
+                    10
+                );
+
+
+            if (
+                chapterNumber &&
+                !Number.isNaN(
+                    chapterNumber
+                )
+            ) {
+
+                /*
+                Synchronize the body attribute so any other code
+                reading it sees the CURRENT GitBook page.
+                */
+
+                if (document.body) {
+
+                    document.body.setAttribute(
+                        "data-current-chapter",
+                        String(
+                            chapterNumber
+                        )
+                    );
+
+                }
+
+
+                return chapterNumber;
+
+            }
+
+        }
+
+
+        /*
+        If the rendered page did not identify itself as a chapter,
+        use the body value only as a final fallback. This supports
+        full-load post pages while avoiding stale GitBook state.
+        */
+
+        const bodyValue =
+            document.body
+                ? document.body.getAttribute(
+                    "data-current-chapter"
+                )
+                : null;
+
+
+        const fallbackChapter =
             parseInt(
-                document.body.dataset.currentChapter,
+                bodyValue,
                 10
             );
 
 
         if (
-            !chapterNumber ||
-            Number.isNaN(
-                chapterNumber
+            fallbackChapter &&
+            !Number.isNaN(
+                fallbackChapter
             )
         ) {
 
-            return null;
+            return fallbackChapter;
 
         }
 
 
-        return chapterNumber;
+        return null;
 
     }
 
@@ -2645,6 +2787,182 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
+       REFRESH ALL PAGE-SPECIFIC LOCK STATE
+       ======================================================== */
+
+    function refreshChapterLockState() {
+
+        if (pageRefreshRunning) {
+
+            return;
+
+        }
+
+
+        pageRefreshRunning =
+            true;
+
+
+        /*
+        A GitBook page transition can replace .body-inner while
+        leaving this script and <body> alive. Discard all cached
+        exercise references and rebuild them from the current DOM.
+        */
+
+        detectedExercises = [];
+
+
+        const currentChapter =
+            getCurrentChapterNumber();
+
+
+        if (currentChapter) {
+
+            protectCurrentChapter();
+
+            detectChapterExercises();
+
+            updateChapterProgress();
+
+        }
+
+
+        /*
+        Homepage and chapter pages both use this same navigation
+        refresh, so the sidebar always derives its state from the
+        same chapter-completion keys.
+        */
+
+        updateAllChapterNavigation();
+
+
+        /*
+        The old .body-inner may have been replaced. Reattach the
+        score observer to the newly rendered chapter content.
+        */
+
+        startProgressObserver();
+
+
+        window.setTimeout(
+            function(){
+
+                pageRefreshRunning =
+                    false;
+
+            },
+            0
+        );
+
+    }
+
+
+
+    /* ========================================================
+       GITBOOK CLIENT-SIDE PAGE CHANGE EVENTS
+       ======================================================== */
+
+    function registerGitBookPageChangeHooks() {
+
+        function bindGitBookEvent() {
+
+            if (
+                window.gitbook &&
+                window.gitbook.events &&
+                typeof window.gitbook.events.bind ===
+                    "function"
+            ) {
+
+                if (
+                    window.__latinGitBookPageChangeBound
+                ) {
+
+                    return true;
+
+                }
+
+
+                window.__latinGitBookPageChangeBound =
+                    true;
+
+
+                window.gitbook.events.bind(
+                    "page.change",
+                    function(){
+
+                        window.setTimeout(
+                            refreshChapterLockState,
+                            0
+                        );
+
+                    }
+                );
+
+
+                return true;
+
+            }
+
+
+            return false;
+
+        }
+
+
+        if (
+            !bindGitBookEvent()
+        ) {
+
+            let attempts = 0;
+
+
+            const timer =
+                window.setInterval(
+                    function(){
+
+                        attempts += 1;
+
+
+                        if (
+                            bindGitBookEvent() ||
+                            attempts >= 40
+                        ) {
+
+                            window.clearInterval(
+                                timer
+                            );
+
+                        }
+
+                    },
+                    100
+                );
+
+        }
+
+
+        /*
+        Browser Back/Forward can also change GitBook content
+        without a normal document reload.
+        */
+
+        window.addEventListener(
+            "popstate",
+            function(){
+
+                window.setTimeout(
+                    refreshChapterLockState,
+                    0
+                );
+
+            }
+        );
+
+    }
+
+
+
+    /* ========================================================
        WATCH HOME/SIDEBAR DOM CHANGES
        ======================================================== */
 
@@ -2670,7 +2988,7 @@ li.chapter.chapter-is-locked > a {
                         window.setTimeout(
                             function(){
 
-                                updateAllChapterNavigation();
+                                refreshChapterLockState();
 
                             },
                             25
@@ -2699,41 +3017,25 @@ li.chapter.chapter-is-locked > a {
     function initializeChapterLocks() {
 
         /*
-        Direct URL protection comes first.
+        Build the initial state from the currently rendered page.
         */
 
-        protectCurrentChapter();
+        refreshChapterLockState();
 
 
         /*
-        Find chapter exercises.
+        Keep navigation synchronized if the theme rewrites the
+        sidebar or page body.
         */
-
-        detectChapterExercises();
-
-
-        /*
-        Draw/update progress.
-        */
-
-        updateChapterProgress();
-
-
-        /*
-        Lock/unlock navigation.
-        */
-
-        updateAllChapterNavigation();
-
 
         startNavigationObserver();
 
 
         /*
-        Watch exercises for future score changes.
+        Rebuild state after GitBook client-side page changes.
         */
 
-        startProgressObserver();
+        registerGitBookPageChangeHooks();
 
     }
 
@@ -2757,6 +3059,10 @@ li.chapter.chapter-is-locked > a {
 
     window.updateChapterProgress =
         updateChapterProgress;
+
+
+    window.refreshLatinChapterLockState =
+        refreshChapterLockState;
 
 
     window.isLatinChapterComplete =
@@ -2836,11 +3142,7 @@ li.chapter.chapter-is-locked > a {
             window.setTimeout(
                 function(){
 
-                    detectChapterExercises();
-
-                    updateChapterProgress();
-
-                    updateAllChapterNavigation();
+                    refreshChapterLockState();
 
                 },
                 0
@@ -2859,9 +3161,7 @@ li.chapter.chapter-is-locked > a {
         "latinChapterCompleted",
         function(){
 
-            updateChapterProgress();
-
-            updateAllChapterNavigation();
+            refreshChapterLockState();
 
         }
     );
@@ -2876,9 +3176,7 @@ li.chapter.chapter-is-locked > a {
         "storage",
         function(){
 
-            updateChapterProgress();
-
-            updateAllChapterNavigation();
+            refreshChapterLockState();
 
         }
     );
