@@ -13,19 +13,11 @@
          latin-chapter-3-complete
          etc.
 
-     Chapter unlock state:
-         latin-chapter-1-unlocked
-         latin-chapter-2-unlocked
-         latin-chapter-3-unlocked
-         etc.
-
      Exercise completion:
          latin-exercise-complete-chapter-N-EXERCISEID
 
      Chapter 1 is always unlocked.
-     Chapter N is unlocked when:
-       1. it has previously been unlocked in this browser, OR
-       2. Chapter N-1 is complete.
+     Chapter N requires Chapter N-1 to be complete.
 
      Exercise completion is earned when a detected score
      element reports a perfect score, such as:
@@ -52,6 +44,10 @@
 
 .chapter-lock-link.chapter-locked:hover {
     text-decoration: none;
+}
+
+.chapter-lock-link.chapter-locked {
+    pointer-events: auto !important;
 }
 
 .chapter-lock-icon {
@@ -439,12 +435,9 @@ li.chapter.chapter-is-locked > a {
     "use strict";
 
 
-    /*
-    Prevent duplicate event listeners if this include appears
-    more than once through nested layouts.
-    */
-
-    if (window.__latinChapterLocksInitialized) {
+    if (
+        window.__latinByPatternsChapterLocksLoaded
+    ) {
 
         if (
             typeof window.updateAllChapterNavigation ===
@@ -460,7 +453,7 @@ li.chapter.chapter-is-locked > a {
     }
 
 
-    window.__latinChapterLocksInitialized =
+    window.__latinByPatternsChapterLocksLoaded =
         true;
 
 
@@ -471,6 +464,10 @@ li.chapter.chapter-is-locked > a {
     let modalSourceElement = null;
 
     let progressObserver = null;
+
+    let navigationObserver = null;
+
+    let navigationRefreshTimer = null;
 
     let detectedExercises = [];
 
@@ -689,28 +686,12 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        /*
-        Chapter 1 is always unlocked.
-        Persist that fact so every page, including the home
-        screen, sees the same browser state.
-        */
-
         if (chapterNumber === 1) {
-
-            storageSet(
-                chapterUnlockKey(1),
-                "true"
-            );
 
             return true;
 
         }
 
-
-        /*
-        Once a chapter has been unlocked in this browser,
-        keep it unlocked.
-        */
 
         if (
             storageGet(
@@ -724,11 +705,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        Otherwise, unlock it when the immediately preceding
-        chapter is complete, and persist the unlock state.
-        */
 
         if (
             isChapterComplete(
@@ -796,11 +772,6 @@ li.chapter.chapter-is-locked > a {
 
         }
 
-
-        /*
-        Completing a chapter permanently unlocks the next
-        chapter in this browser.
-        */
 
         storageSet(
             chapterUnlockKey(
@@ -1014,43 +985,24 @@ li.chapter.chapter-is-locked > a {
 
     function findScoreElements() {
 
-        /*
-        Prefer explicit score elements. Existing chapter posts
-        that predate data-exercise-score are still supported by
-        their conventional IDs ending in "-score".
-
-        Do NOT scan arbitrary parent text for "Score: X / Y";
-        doing so can count the same exercise multiple times.
-        */
-
         const candidates =
             Array.from(
                 document.querySelectorAll(
-                    [
-                        "[data-exercise-score]",
-                        '[id$="-score"]'
-                    ].join(",")
+                    '[data-exercise-score], [id$="-score"]'
                 )
             );
 
 
-        const unique =
-            Array.from(
-                new Set(
-                    candidates
-                )
-            );
-
-
-        return unique.filter(
+        return Array.from(
+            new Set(
+                candidates
+            )
+        )
+        .filter(
             function(element){
 
-                return (
-                    !element.closest(
-                        ".chapter-progress-panel"
-                    ) &&
-                    element.id !==
-                        "chapter-progress-status"
+                return !element.closest(
+                    ".chapter-progress-panel"
                 );
 
             }
@@ -1911,16 +1863,11 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       RESOLVE CHAPTER NUMBER FROM A NAVIGATION LINK
-
-       Primary source: data-chapter / data-next-chapter.
-       Fallbacks make the home screen resilient if the theme
-       renders chapter links without those data attributes.
+       CHAPTER NUMBER FROM ANY CHAPTER LINK
        ======================================================== */
 
     function getChapterNumberFromLink(
-        link,
-        dataAttributeName
+        link
     ) {
 
         if (!link) {
@@ -1930,84 +1877,139 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        const datasetValue =
-            dataAttributeName &&
-            link.dataset
-                ? link.dataset[
-                    dataAttributeName
-                ]
-                : null;
-
-
-        let chapterNumber =
+        const explicit =
             parseInt(
-                datasetValue,
+                link.getAttribute(
+                    "data-chapter"
+                ),
                 10
             );
 
 
         if (
-            chapterNumber &&
+            explicit &&
             !Number.isNaN(
-                chapterNumber
+                explicit
             )
         ) {
 
-            return chapterNumber;
+            return explicit;
 
         }
 
 
-        const searchableText =
-            [
-                link.textContent || "",
-                link.getAttribute("aria-label") || "",
-                link.getAttribute("title") || "",
-                link.getAttribute("href") || "",
-                link.dataset
-                    ? (
-                        link.dataset.lockedHref ||
-                        ""
-                    )
-                    : ""
-            ].join(" ");
-
-
-        const match =
-            searchableText.match(
-                /chapter[\s\-_:/]*(\d+)/i
-            );
-
-
-        if (!match) {
-
-            return null;
-
-        }
-
-
-        chapterNumber =
+        const explicitNext =
             parseInt(
-                match[1],
+                link.getAttribute(
+                    "data-next-chapter"
+                ),
                 10
             );
 
 
-        return (
-            chapterNumber &&
+        if (
+            explicitNext &&
             !Number.isNaN(
-                chapterNumber
+                explicitNext
             )
-        )
-            ? chapterNumber
-            : null;
+        ) {
+
+            return explicitNext;
+
+        }
+
+
+        const values = [
+            link.textContent || "",
+            link.getAttribute("aria-label") || "",
+            link.getAttribute("title") || "",
+            link.getAttribute("href") || ""
+        ];
+
+
+        for (
+            let i = 0;
+            i < values.length;
+            i += 1
+        ) {
+
+            const match =
+                String(
+                    values[i]
+                ).match(
+                    /\bChapter\s+(\d+)\b/i
+                );
+
+
+            if (match) {
+
+                const chapterNumber =
+                    parseInt(
+                        match[1],
+                        10
+                    );
+
+
+                if (
+                    chapterNumber &&
+                    !Number.isNaN(
+                        chapterNumber
+                    )
+                ) {
+
+                    return chapterNumber;
+
+                }
+
+            }
+
+        }
+
+
+        return null;
 
     }
 
 
 
     /* ========================================================
-       UPDATE ONE SIDEBAR CHAPTER LINK
+       DETERMINE WHETHER A LINK IS A CHAPTER LINK
+       ======================================================== */
+
+    function isChapterNavigationLink(
+        link
+    ) {
+
+        if (!link) {
+
+            return false;
+
+        }
+
+
+        if (
+            link.classList.contains(
+                "chapter-next-lock-link"
+            )
+        ) {
+
+            return false;
+
+        }
+
+
+        return (
+            getChapterNumberFromLink(
+                link
+            ) !== null
+        );
+
+    }
+
+
+
+    /* ========================================================
+       APPLY STATE TO ONE HOME/SIDEBAR CHAPTER LINK
        ======================================================== */
 
     function updateSidebarChapterLink(
@@ -2016,21 +2018,28 @@ li.chapter.chapter-is-locked > a {
 
         const chapterNumber =
             getChapterNumberFromLink(
-                link,
-                "chapter"
+                link
             );
 
 
-        if (
-            !chapterNumber ||
-            Number.isNaN(
-                chapterNumber
-            )
-        ) {
+        if (!chapterNumber) {
 
             return;
 
         }
+
+
+        link.classList.add(
+            "chapter-lock-link"
+        );
+
+
+        link.setAttribute(
+            "data-chapter",
+            String(
+                chapterNumber
+            )
+        );
 
 
         const unlocked =
@@ -2039,124 +2048,64 @@ li.chapter.chapter-is-locked > a {
             );
 
 
+        link.classList.toggle(
+            "chapter-unlocked",
+            unlocked
+        );
+
+
+        link.classList.toggle(
+            "chapter-locked",
+            !unlocked
+        );
+
+
+        link.setAttribute(
+            "aria-disabled",
+            unlocked
+                ? "false"
+                : "true"
+        );
+
+
+        if (unlocked) {
+
+            link.removeAttribute(
+                "data-latin-locked"
+            );
+
+            link.removeAttribute(
+                "tabindex"
+            );
+
+        }
+
+        else {
+
+            link.setAttribute(
+                "data-latin-locked",
+                "true"
+            );
+
+            link.setAttribute(
+                "tabindex",
+                "0"
+            );
+
+        }
+
+
         const parent =
             link.closest(
                 "li.chapter"
             );
 
 
-
-        /* =====================================================
-           SIDEBAR CHAPTER UNLOCKED
-           ===================================================== */
-
-        if (unlocked) {
-
-            link.classList.remove(
-                "chapter-locked"
-            );
-
-
-            link.classList.add(
-                "chapter-unlocked"
-            );
-
-
-            link.removeAttribute(
-                "aria-disabled"
-            );
-
-
-            link.removeAttribute(
-                "tabindex"
-            );
-
-
-            if (
-                link.dataset.lockedHref
-            ) {
-
-                link.setAttribute(
-                    "href",
-                    link.dataset.lockedHref
-                );
-
-
-                delete link.dataset.lockedHref;
-
-            }
-
-
-            if (parent) {
-
-                parent.classList.remove(
-                    "chapter-is-locked"
-                );
-
-            }
-
-
-            return;
-
-        }
-
-
-
-        /* =====================================================
-           SIDEBAR CHAPTER LOCKED
-           ===================================================== */
-
-        link.classList.remove(
-            "chapter-unlocked"
-        );
-
-
-        link.classList.add(
-            "chapter-locked"
-        );
-
-
-        link.setAttribute(
-            "aria-disabled",
-            "true"
-        );
-
-
-        link.setAttribute(
-            "tabindex",
-            "0"
-        );
-
-
-        if (
-            link.hasAttribute(
-                "href"
-            )
-        ) {
-
-            if (
-                !link.dataset.lockedHref
-            ) {
-
-                link.dataset.lockedHref =
-                    link.getAttribute(
-                        "href"
-                    );
-
-            }
-
-
-            link.removeAttribute(
-                "href"
-            );
-
-        }
-
-
         if (parent) {
 
-            parent.classList.add(
-                "chapter-is-locked"
+            parent.classList.toggle(
+                "chapter-is-locked",
+                !unlocked
             );
 
         }
@@ -2166,107 +2115,24 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       UPDATE ALL SIDEBAR CHAPTER LINKS
+       UPDATE ALL HOME/SIDEBAR CHAPTER LINKS
        ======================================================== */
 
     function updateChapterNavigation() {
 
-        const explicitLinks =
-            Array.from(
-                document.querySelectorAll(
-                    ".chapter-lock-link"
-                )
-            );
-
-
-        /*
-        Home-screen fallback:
-        also inspect sidebar/list links that visibly identify
-        themselves as Chapter N links. This allows the lock
-        system to work even when a theme-generated home TOC
-        omits the chapter-lock-link class or data-chapter.
-        */
-
-        const fallbackLinks =
+        const links =
             Array.from(
                 document.querySelectorAll(
                     "a"
                 )
             )
             .filter(
-                function(link){
-
-                    if (
-                        link.classList.contains(
-                            "chapter-next-lock-link"
-                        )
-                    ) {
-
-                        return false;
-
-                    }
-
-
-                    return (
-                        getChapterNumberFromLink(
-                            link,
-                            "chapter"
-                        ) !== null
-                    );
-
-                }
-            );
-
-
-        const links =
-            Array.from(
-                new Set(
-                    explicitLinks.concat(
-                        fallbackLinks
-                    )
-                )
+                isChapterNavigationLink
             );
 
 
         links.forEach(
-            function(link){
-
-                /*
-                Normalize fallback links so click and keyboard
-                handlers treat them exactly like regular TOC
-                chapter links.
-                */
-
-                const chapterNumber =
-                    getChapterNumberFromLink(
-                        link,
-                        "chapter"
-                    );
-
-
-                if (
-                    chapterNumber &&
-                    !link.dataset.chapter
-                ) {
-
-                    link.dataset.chapter =
-                        String(
-                            chapterNumber
-                        );
-
-                }
-
-
-                link.classList.add(
-                    "chapter-lock-link"
-                );
-
-
-                updateSidebarChapterLink(
-                    link
-                );
-
-            }
+            updateSidebarChapterLink
         );
 
     }
@@ -2281,7 +2147,7 @@ li.chapter.chapter-is-locked > a {
 
         const links =
             document.querySelectorAll(
-                ".chapter-next-lock-link"
+                "a.chapter-next-lock-link"
             );
 
 
@@ -2290,17 +2156,11 @@ li.chapter.chapter-is-locked > a {
 
                 const chapterNumber =
                     getChapterNumberFromLink(
-                        link,
-                        "nextChapter"
+                        link
                     );
 
 
-                if (
-                    !chapterNumber ||
-                    Number.isNaN(
-                        chapterNumber
-                    )
-                ) {
+                if (!chapterNumber) {
 
                     return;
 
@@ -2313,100 +2173,48 @@ li.chapter.chapter-is-locked > a {
                     );
 
 
-
-                /* =============================================
-                   NEXT CHAPTER UNLOCKED
-                   ============================================= */
-
-                if (unlocked) {
-
-                    link.classList.remove(
-                        "chapter-next-locked"
-                    );
-
-
-                    link.classList.add(
-                        "chapter-next-unlocked"
-                    );
-
-
-                    link.removeAttribute(
-                        "aria-disabled"
-                    );
-
-
-                    link.removeAttribute(
-                        "tabindex"
-                    );
-
-
-                    if (
-                        link.dataset.lockedHref
-                    ) {
-
-                        link.setAttribute(
-                            "href",
-                            link.dataset.lockedHref
-                        );
-
-
-                        delete link.dataset.lockedHref;
-
-                    }
-
-
-                    return;
-
-                }
-
-
-
-                /* =============================================
-                   NEXT CHAPTER LOCKED
-                   ============================================= */
-
-                link.classList.remove(
-                    "chapter-next-unlocked"
+                link.classList.toggle(
+                    "chapter-next-unlocked",
+                    unlocked
                 );
 
 
-                link.classList.add(
-                    "chapter-next-locked"
+                link.classList.toggle(
+                    "chapter-next-locked",
+                    !unlocked
                 );
 
 
                 link.setAttribute(
                     "aria-disabled",
-                    "true"
+                    unlocked
+                        ? "false"
+                        : "true"
                 );
 
 
-                link.setAttribute(
-                    "tabindex",
-                    "0"
-                );
-
-
-                if (
-                    link.hasAttribute(
-                        "href"
-                    )
-                ) {
-
-                    if (
-                        !link.dataset.lockedHref
-                    ) {
-
-                        link.dataset.lockedHref =
-                            link.getAttribute(
-                                "href"
-                            );
-
-                    }
-
+                if (unlocked) {
 
                     link.removeAttribute(
-                        "href"
+                        "data-latin-locked"
+                    );
+
+                    link.removeAttribute(
+                        "tabindex"
+                    );
+
+                }
+
+                else {
+
+                    link.setAttribute(
+                        "data-latin-locked",
+                        "true"
+                    );
+
+                    link.setAttribute(
+                        "tabindex",
+                        "0"
                     );
 
                 }
@@ -2433,16 +2241,16 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       SIDEBAR LOCKED-CHAPTER CLICK
+       AUTHORITATIVE CAPTURE-PHASE CLICK GATE
        ======================================================== */
 
-    function handleSidebarChapterClick(
+    function handleChapterNavigationClick(
         event
     ) {
 
         const link =
             event.target.closest(
-                ".chapter-lock-link"
+                "a"
             );
 
 
@@ -2455,16 +2263,35 @@ li.chapter.chapter-is-locked > a {
 
         const chapterNumber =
             getChapterNumberFromLink(
-                link,
-                "chapter"
+                link
+            );
+
+
+        if (!chapterNumber) {
+
+            return;
+
+        }
+
+
+        const isNext =
+            link.classList.contains(
+                "chapter-next-lock-link"
+            );
+
+
+        const isChapterLink =
+            link.classList.contains(
+                "chapter-lock-link"
+            ) ||
+            isChapterNavigationLink(
+                link
             );
 
 
         if (
-            !chapterNumber ||
-            Number.isNaN(
-                chapterNumber
-            )
+            !isNext &&
+            !isChapterLink
         ) {
 
             return;
@@ -2477,21 +2304,6 @@ li.chapter.chapter-is-locked > a {
                 chapterNumber
             )
         ) {
-
-            if (
-                link.dataset.lockedHref
-            ) {
-
-                link.setAttribute(
-                    "href",
-                    link.dataset.lockedHref
-                );
-
-
-                delete link.dataset.lockedHref;
-
-            }
-
 
             return;
 
@@ -2518,92 +2330,7 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
-       NEXT-ARROW LOCKED-CHAPTER CLICK
-       ======================================================== */
-
-    function handleNextChapterClick(
-        event
-    ) {
-
-        const link =
-            event.target.closest(
-                ".chapter-next-lock-link"
-            );
-
-
-        if (!link) {
-
-            return;
-
-        }
-
-
-        const chapterNumber =
-            getChapterNumberFromLink(
-                link,
-                "nextChapter"
-            );
-
-
-        if (
-            !chapterNumber ||
-            Number.isNaN(
-                chapterNumber
-            )
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            isChapterUnlocked(
-                chapterNumber
-            )
-        ) {
-
-            if (
-                link.dataset.lockedHref
-            ) {
-
-                link.setAttribute(
-                    "href",
-                    link.dataset.lockedHref
-                );
-
-
-                delete link.dataset.lockedHref;
-
-            }
-
-
-            return;
-
-        }
-
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        event.stopImmediatePropagation();
-
-
-        showChapterLockModal(
-            chapterNumber,
-            link
-        );
-
-
-        return false;
-
-    }
-
-
-
-    /* ========================================================
-       KEYBOARD SUPPORT FOR LOCKED NAVIGATION
+       KEYBOARD GATE FOR LOCKED CHAPTER LINKS
        ======================================================== */
 
     function handleLockedNavigationKeydown(
@@ -2620,81 +2347,62 @@ li.chapter.chapter-is-locked > a {
         }
 
 
-        const sidebarLink =
+        const link =
             event.target.closest(
-                ".chapter-lock-link"
+                "a"
             );
 
 
-        if (sidebarLink) {
+        if (!link) {
 
-            const chapterNumber =
-                getChapterNumberFromLink(
-                    sidebarLink,
-                    "chapter"
-                );
-
-
-            if (
-                chapterNumber &&
-                !isChapterUnlocked(
-                    chapterNumber
-                )
-            ) {
-
-                event.preventDefault();
-
-                event.stopPropagation();
-
-
-                showChapterLockModal(
-                    chapterNumber,
-                    sidebarLink
-                );
-
-
-                return;
-
-            }
+            return;
 
         }
 
 
-        const nextLink =
-            event.target.closest(
-                ".chapter-next-lock-link"
+        const chapterNumber =
+            getChapterNumberFromLink(
+                link
             );
 
 
-        if (nextLink) {
+        if (
+            !chapterNumber ||
+            isChapterUnlocked(
+                chapterNumber
+            )
+        ) {
 
-            const chapterNumber =
-                getChapterNumberFromLink(
-                    nextLink,
-                    "nextChapter"
-                );
-
-
-            if (
-                chapterNumber &&
-                !isChapterUnlocked(
-                    chapterNumber
-                )
-            ) {
-
-                event.preventDefault();
-
-                event.stopPropagation();
-
-
-                showChapterLockModal(
-                    chapterNumber,
-                    nextLink
-                );
-
-            }
+            return;
 
         }
+
+
+        if (
+            !link.classList.contains(
+                "chapter-lock-link"
+            ) &&
+            !link.classList.contains(
+                "chapter-next-lock-link"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        event.stopImmediatePropagation();
+
+
+        showChapterLockModal(
+            chapterNumber,
+            link
+        );
 
     }
 
@@ -2898,14 +2606,58 @@ li.chapter.chapter-is-locked > a {
 
 
     /* ========================================================
+       WATCH HOME/SIDEBAR DOM CHANGES
+       ======================================================== */
+
+    function startNavigationObserver() {
+
+        if (navigationObserver) {
+
+            navigationObserver.disconnect();
+
+        }
+
+
+        navigationObserver =
+            new MutationObserver(
+                function(){
+
+                    window.clearTimeout(
+                        navigationRefreshTimer
+                    );
+
+
+                    navigationRefreshTimer =
+                        window.setTimeout(
+                            function(){
+
+                                updateAllChapterNavigation();
+
+                            },
+                            25
+                        );
+
+                }
+            );
+
+
+        navigationObserver.observe(
+            document.documentElement,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    }
+
+
+
+    /* ========================================================
        INITIALIZE
        ======================================================== */
 
     function initializeChapterLocks() {
-
-        /*
-        Chapter 1 is always available in every browser.
-        */
 
         storageSet(
             chapterUnlockKey(1),
@@ -2939,6 +2691,9 @@ li.chapter.chapter-is-locked > a {
         */
 
         updateAllChapterNavigation();
+
+
+        startNavigationObserver();
 
 
         /*
@@ -3002,14 +2757,7 @@ li.chapter.chapter-is-locked > a {
 
     document.addEventListener(
         "click",
-        handleSidebarChapterClick,
-        true
-    );
-
-
-    document.addEventListener(
-        "click",
-        handleNextChapterClick,
+        handleChapterNavigationClick,
         true
     );
 
