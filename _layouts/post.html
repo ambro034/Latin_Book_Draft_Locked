@@ -1,67 +1,1027 @@
 <!DOCTYPE HTML>
-<html lang="en" >
-    <head>
 
-        {%- include head.html -%}
+<html lang="en">
+
+<head>
+
+{%- include head.html -%}
+
+
+<!-- ============================================================
+     DETERMINE CURRENT CHAPTER NUMBER
+     ============================================================ -->
+
+{% assign current_title_words =
+    page.title
+    | split: " "
+%}
+
+{% assign current_first_word =
+    current_title_words[0]
+%}
+
+{% assign current_chapter_number_raw =
+    current_title_words[1]
+    | remove: "."
+    | remove: ":"
+%}
+
+{% assign current_chapter_number =
+    current_chapter_number_raw
+    | plus: 0
+%}
+
+
+
+<!-- ============================================================
+     DETERMINE NEXT CHAPTER NUMBER
+     ============================================================ -->
+
+{% if page.next %}
+
+    {% assign next_title_words =
+        page.next.title
+        | split: " "
+    %}
+
+    {% assign next_first_word =
+        next_title_words[0]
+    %}
+
+    {% assign next_chapter_number_raw =
+        next_title_words[1]
+        | remove: "."
+        | remove: ":"
+    %}
+
+    {% assign next_chapter_number =
+        next_chapter_number_raw
+        | plus: 0
+    %}
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     PREVIOUS PAGE RELATION
+     ============================================================ -->
+
+{% if page.previous %}
+
+<link
+    rel="prev"
+    href="{{site.baseurl}}{{page.previous.url}}" />
+
+{% else %}
+
+<link
+    rel="prev"
+    href="{{site.baseurl}}/" />
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     NEXT PAGE RELATION
+     ============================================================ -->
+
+{% if page.next %}
+
+<link
+    rel="next"
+    href="{{site.baseurl}}{{page.next.url}}" />
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     NEXT CHAPTER LOCK STYLES
+     ============================================================ -->
+
+<style>
+
+.navigation-next.chapter-next-locked {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.navigation-next.chapter-next-locked:hover {
+    opacity: 0.45;
+}
+
+.navigation-next.chapter-next-locked i {
+    pointer-events: none;
+}
+
+
+/*
+Small lock marker beside the next-page arrow.
+*/
+
+.chapter-next-lock-icon {
+    position: absolute;
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+
+/*
+GitBook places the right navigation arrow vertically
+along the edge of the page. The lock sits just inside it.
+*/
+
+.navigation-next .chapter-next-lock-icon {
+    right: 14px;
+    top: calc(50% + 22px);
+}
+
+
+.chapter-next-unlocked .chapter-next-lock-icon {
+    display: none;
+}
+
+
+.chapter-next-locked .chapter-next-lock-icon {
+    display: block;
+}
+
+</style>
+
+
+</head>
+
+
+
+<body
+
+{% if current_first_word == "Chapter" and current_chapter_number > 0 %}
+
+data-current-chapter="{{current_chapter_number}}"
+
+{% endif %}
+
+>
+
+
+
+<div class="book">
+
+
+<!-- ============================================================
+     SIDEBAR / TABLE OF CONTENTS
+     ============================================================ -->
+
+{%- include toc-date.html -%}
+
+
+
+<!-- ============================================================
+     DIRECT-URL CHAPTER PROTECTION
+     ============================================================ -->
+
+{% if current_first_word == "Chapter" and current_chapter_number > 1 %}
+
+<script>
+
+(function(){
+
+    const currentChapter =
+        {{ current_chapter_number }};
+
+
+    const requiredChapter =
+        currentChapter - 1;
+
+
+    const completionKey =
+        "latin-chapter-" +
+        requiredChapter +
+        "-complete";
+
+
+    const prerequisiteComplete =
+        localStorage.getItem(
+            completionKey
+        ) === "true";
+
+
+    /*
+    If someone manually enters the URL of a locked
+    chapter, send them back to the previous page.
+
+    This is client-side protection appropriate for a
+    static GitHub Pages site.
+    */
+
+    if (!prerequisiteComplete) {
 
         {% if page.previous %}
-            <link rel="prev" href="{{site.baseurl}}{{page.previous.url}}" />
+
+        window.location.replace(
+            "{{site.baseurl}}{{page.previous.url}}"
+        );
+
         {% else %}
-            <link rel="prev" href="{{site.baseurl}}/" />
+
+        window.location.replace(
+            "{{site.baseurl}}/"
+        );
+
         {% endif %}
 
-        {% if page.next %}
-            <link rel="next" href="{{site.baseurl}}{{page.next.url}}" />
-        {% endif %}
-    </head>
-    <body>
-        <div class="book">
+    }
 
-            {%- include toc-date.html -%}
+})();
 
-            <div class="book-body">
-                <div class="book-header" role="navigation">
-                    <!-- Title -->
-                    <h1>
-                        <i class="fa fa-circle-o-notch fa-spin"></i>
-                        {% if page.title %}
-                            <a href="." >{{ page.title | escape }}</a>
-                        {% else %}
-                            <a href="." >{{ site.title | escape }}</a>
-                        {% endif %}
-                    </h1>
-                </div>
+</script>
 
-                <div class="body-inner">
-                    {%- include body.html -%}
+{% endif %}
 
-                    {% if page.previous %}
-                        <a href="{{site.baseurl}}{{page.previous.url}}" class="navigation navigation-prev navigation-unique" aria-label="Previous page: {{page.previous.title}}">
-                            <i class="fa fa-angle-left"></i>
-                        </a>
-                    {% else %}
-                        <a href="{{site.baseurl}}/" class="navigation navigation-prev navigation-unique" aria-label="Previous page: {{site.title}}">
-                            <i class="fa fa-angle-left"></i>
-                        </a>
-                    {% endif %}
 
-                    {% if page.next %}
-                        <a href="{{site.baseurl}}{{page.next.url}}" class="navigation navigation-next navigation-unique" aria-label="Next page: {{page.next.title}}">
-                            <i class="fa fa-angle-right"></i>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
 
-            <script>
-            var gitbook = gitbook || [];
-            gitbook.push(function() {
-                gitbook.page.hasChanged({%- include metadata-post.json.tpl -%});
-            });
-            </script>
-        </div>
+<div class="book-body">
 
-        {%- include footer.html -%}
 
-    </body>
+<div
+    class="book-header"
+    role="navigation">
+
+
+<!-- ============================================================
+     TITLE
+     ============================================================ -->
+
+<h1>
+
+<i class="fa fa-circle-o-notch fa-spin"></i>
+
+
+{% if page.title %}
+
+<a href=".">
+{{ page.title | escape }}
+</a>
+
+{% else %}
+
+<a href=".">
+{{ site.title | escape }}
+</a>
+
+{% endif %}
+
+
+</h1>
+
+
+</div>
+
+
+
+<div class="body-inner">
+
+
+<!-- ============================================================
+     PAGE CONTENT
+     ============================================================ -->
+
+{%- include body.html -%}
+
+
+
+<!-- ============================================================
+     PREVIOUS PAGE NAVIGATION
+     ============================================================ -->
+
+{% if page.previous %}
+
+<a
+    href="{{site.baseurl}}{{page.previous.url}}"
+    class="navigation navigation-prev navigation-unique"
+    aria-label="Previous page: {{page.previous.title}}">
+
+<i class="fa fa-angle-left"></i>
+
+</a>
+
+
+{% else %}
+
+
+<a
+    href="{{site.baseurl}}/"
+    class="navigation navigation-prev navigation-unique"
+    aria-label="Previous page: {{site.title}}">
+
+<i class="fa fa-angle-left"></i>
+
+</a>
+
+
+{% endif %}
+
+
+
+<!-- ============================================================
+     NEXT PAGE NAVIGATION
+     ============================================================ -->
+
+{% if page.next %}
+
+
+    {% if next_first_word == "Chapter" and next_chapter_number > 0 %}
+
+
+    <!--
+    This next page is a numbered chapter.
+
+    JavaScript below determines whether its href should
+    remain active or be temporarily removed.
+    -->
+
+    <a
+        href="{{site.baseurl}}{{page.next.url}}"
+        class="
+            navigation
+            navigation-next
+            navigation-unique
+            chapter-next-lock-link
+            chapter-next-unlocked
+        "
+        data-next-chapter="{{next_chapter_number}}"
+        data-next-title="{{page.next.title | escape}}"
+        aria-label="Next page: {{page.next.title}}">
+
+        <i class="fa fa-angle-right"></i>
+
+        <span
+            class="chapter-next-lock-icon"
+            aria-hidden="true">
+            🔒
+        </span>
+
+    </a>
+
+
+    {% else %}
+
+
+    <!--
+    Non-chapter pages remain normal navigation links.
+    -->
+
+    <a
+        href="{{site.baseurl}}{{page.next.url}}"
+        class="
+            navigation
+            navigation-next
+            navigation-unique
+        "
+        aria-label="Next page: {{page.next.title}}">
+
+        <i class="fa fa-angle-right"></i>
+
+    </a>
+
+
+    {% endif %}
+
+
+{% endif %}
+
+
+
+</div>
+
+</div>
+
+
+
+<!-- ============================================================
+     NEXT-CHAPTER LOCKING SCRIPT
+     ============================================================ -->
+
+<script>
+
+(function(){
+
+
+    /* ========================================================
+       STORAGE HELPERS
+       ======================================================== */
+
+    function chapterCompletionKey(
+        chapterNumber
+    ) {
+
+        return (
+            "latin-chapter-" +
+            chapterNumber +
+            "-complete"
+        );
+
+    }
+
+
+
+    function isChapterComplete(
+        chapterNumber
+    ) {
+
+        return localStorage.getItem(
+            chapterCompletionKey(
+                chapterNumber
+            )
+        ) === "true";
+
+    }
+
+
+
+    function isChapterUnlocked(
+        chapterNumber
+    ) {
+
+        /*
+        Chapter 1 is always accessible.
+        */
+
+        if (chapterNumber <= 1) {
+
+            return true;
+
+        }
+
+
+        /*
+        Chapter N requires completion of Chapter N-1.
+        */
+
+        return isChapterComplete(
+            chapterNumber - 1
+        );
+
+    }
+
+
+
+    /* ========================================================
+       UPDATE NEXT ARROW
+       ======================================================== */
+
+    function updateNextChapterNavigation() {
+
+        const link =
+            document.querySelector(
+                ".chapter-next-lock-link"
+            );
+
+
+        /*
+        Nothing to do if the next page is not a
+        numbered chapter.
+        */
+
+        if (!link) {
+
+            return;
+
+        }
+
+
+        const nextChapter =
+            parseInt(
+                link.dataset.nextChapter,
+                10
+            );
+
+
+        if (
+            !nextChapter ||
+            Number.isNaN(nextChapter)
+        ) {
+
+            return;
+
+        }
+
+
+        const unlocked =
+            isChapterUnlocked(
+                nextChapter
+            );
+
+
+
+        /* =====================================================
+           NEXT CHAPTER IS UNLOCKED
+           ===================================================== */
+
+        if (unlocked) {
+
+            link.classList.remove(
+                "chapter-next-locked"
+            );
+
+
+            link.classList.add(
+                "chapter-next-unlocked"
+            );
+
+
+            link.removeAttribute(
+                "aria-disabled"
+            );
+
+
+            link.removeAttribute(
+                "tabindex"
+            );
+
+
+            /*
+            Restore the URL if the arrow was
+            previously locked.
+            */
+
+            if (
+                link.dataset.lockedHref
+            ) {
+
+                link.setAttribute(
+                    "href",
+                    link.dataset.lockedHref
+                );
+
+
+                delete link.dataset.lockedHref;
+
+            }
+
+
+            return;
+
+        }
+
+
+
+        /* =====================================================
+           NEXT CHAPTER IS LOCKED
+           ===================================================== */
+
+        link.classList.remove(
+            "chapter-next-unlocked"
+        );
+
+
+        link.classList.add(
+            "chapter-next-locked"
+        );
+
+
+        link.setAttribute(
+            "aria-disabled",
+            "true"
+        );
+
+
+        /*
+        Keep it keyboard-focusable so a keyboard user
+        can still receive the explanation modal.
+        */
+
+        link.setAttribute(
+            "tabindex",
+            "0"
+        );
+
+
+        /*
+        Store the real URL and remove href.
+
+        This prevents GitBook's navigation code from
+        loading the locked chapter.
+        */
+
+        if (
+            link.hasAttribute(
+                "href"
+            )
+        ) {
+
+            link.dataset.lockedHref =
+                link.getAttribute(
+                    "href"
+                );
+
+
+            link.removeAttribute(
+                "href"
+            );
+
+        }
+
+    }
+
+
+
+    /* ========================================================
+       SHOW THE EXISTING SIDEBAR LOCK MODAL
+       ======================================================== */
+
+    function showNextChapterLockMessage(
+        link
+    ) {
+
+        const nextChapter =
+            parseInt(
+                link.dataset.nextChapter,
+                10
+            );
+
+
+        /*
+        The custom modal already lives in
+        _includes/toc-date.html.
+
+        Rather than duplicate that modal here, locate
+        the matching locked sidebar chapter and trigger
+        its existing locking behavior.
+        */
+
+        const sidebarLink =
+            document.querySelector(
+                '.chapter-lock-link[data-chapter="' +
+                nextChapter +
+                '"]'
+            );
+
+
+        if (sidebarLink) {
+
+            sidebarLink.click();
+
+            return;
+
+        }
+
+
+        /*
+        Fallback:
+        The sidebar should normally always exist because
+        this layout includes toc-date.html. If it does not,
+        simply leave the student on the current page.
+        */
+
+        return;
+
+    }
+
+
+
+    /* ========================================================
+       NEXT ARROW CLICK HANDLER
+       ======================================================== */
+
+    function handleNextChapterClick(
+        event
+    ) {
+
+        const link =
+            event.target.closest(
+                ".chapter-next-lock-link"
+            );
+
+
+        if (!link) {
+
+            return;
+
+        }
+
+
+        const nextChapter =
+            parseInt(
+                link.dataset.nextChapter,
+                10
+            );
+
+
+        if (
+            !nextChapter ||
+            Number.isNaN(nextChapter)
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+        Recheck localStorage at the moment the student
+        clicks. This means an exercise completed only a
+        moment earlier can immediately unlock the arrow.
+        */
+
+        const unlocked =
+            isChapterUnlocked(
+                nextChapter
+            );
+
+
+        if (unlocked) {
+
+            /*
+            If it had previously been locked, restore
+            its URL before allowing navigation.
+            */
+
+            if (
+                link.dataset.lockedHref
+            ) {
+
+                link.setAttribute(
+                    "href",
+                    link.dataset.lockedHref
+                );
+
+
+                delete link.dataset.lockedHref;
+
+            }
+
+
+            link.classList.remove(
+                "chapter-next-locked"
+            );
+
+
+            link.classList.add(
+                "chapter-next-unlocked"
+            );
+
+
+            return;
+
+        }
+
+
+        /*
+        Chapter still locked.
+        */
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        event.stopImmediatePropagation();
+
+
+        showNextChapterLockMessage(
+            link
+        );
+
+
+        return false;
+
+    }
+
+
+
+    /* ========================================================
+       KEYBOARD SUPPORT
+       ======================================================== */
+
+    function handleNextChapterKeydown(
+        event
+    ) {
+
+        if (
+            event.key !== "Enter" &&
+            event.key !== " "
+        ) {
+
+            return;
+
+        }
+
+
+        const link =
+            event.target.closest(
+                ".chapter-next-lock-link"
+            );
+
+
+        if (!link) {
+
+            return;
+
+        }
+
+
+        const nextChapter =
+            parseInt(
+                link.dataset.nextChapter,
+                10
+            );
+
+
+        if (
+            !nextChapter ||
+            Number.isNaN(nextChapter)
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            isChapterUnlocked(
+                nextChapter
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+
+        showNextChapterLockMessage(
+            link
+        );
+
+    }
+
+
+
+    /* ========================================================
+       PUBLIC UPDATE FUNCTION
+       ======================================================== */
+
+    window.updateNextChapterNavigation =
+        updateNextChapterNavigation;
+
+
+
+    /* ========================================================
+       INITIAL PAGE LOAD
+       ======================================================== */
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            updateNextChapterNavigation
+        );
+
+    }
+
+    else {
+
+        updateNextChapterNavigation();
+
+    }
+
+
+
+    /* ========================================================
+       CLICK CAPTURE
+
+       Runs before GitBook's normal navigation handling.
+       ======================================================== */
+
+    document.addEventListener(
+        "click",
+        handleNextChapterClick,
+        true
+    );
+
+
+
+    /* ========================================================
+       KEYBOARD SUPPORT
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        handleNextChapterKeydown,
+        true
+    );
+
+
+
+    /* ========================================================
+       REFRESH AFTER PAGE INTERACTIONS
+
+       Your exercise "Check Answers" buttons store chapter
+       completion during their click event. This checks again
+       immediately afterward so the arrow visibly unlocks
+       without requiring a reload.
+       ======================================================== */
+
+    document.addEventListener(
+        "click",
+        function(){
+
+            window.setTimeout(
+                function(){
+
+                    updateNextChapterNavigation();
+
+
+                    /*
+                    Also refresh the sidebar if the
+                    toc-date.html function is available.
+                    */
+
+                    if (
+                        typeof window.updateChapterNavigation ===
+                        "function"
+                    ) {
+
+                        window.updateChapterNavigation();
+
+                    }
+
+                },
+                0
+            );
+
+        }
+    );
+
+
+
+    /* ========================================================
+       MULTIPLE BROWSER TAB SUPPORT
+       ======================================================== */
+
+    window.addEventListener(
+        "storage",
+        function(){
+
+            updateNextChapterNavigation();
+
+
+            if (
+                typeof window.updateChapterNavigation ===
+                "function"
+            ) {
+
+                window.updateChapterNavigation();
+
+            }
+
+        }
+    );
+
+
+})();
+
+</script>
+
+
+
+<!-- ============================================================
+     EXISTING GITBOOK PAGE METADATA
+     ============================================================ -->
+
+<script>
+
+var gitbook =
+    gitbook || [];
+
+
+gitbook.push(function() {
+
+    gitbook.page.hasChanged(
+        {%- include metadata-post.json.tpl -%}
+    );
+
+});
+
+</script>
+
+
+</div>
+
+
+{%- include footer.html -%}
+
+
+</body>
+
 </html>
