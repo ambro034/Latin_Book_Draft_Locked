@@ -8,34 +8,6 @@ keyword: Latin
 ---
 
 
-<!-- ============================================================
-     CHAPTER 2 ACCESS GUARD
-     Chapter 1 must be complete before Chapter 2 can be viewed.
-     This is a defensive page-level guard in addition to the
-     centralized sidebar/Next-button locking system.
-     ============================================================ -->
-
-<script>
-(function () {
-  "use strict";
-
-  var chapter1Complete = false;
-
-  try {
-    chapter1Complete =
-      window.localStorage.getItem("latin-chapter-1-complete") === "true";
-  } catch (error) {
-    chapter1Complete = false;
-  }
-
-  if (!chapter1Complete) {
-    window.location.replace("{{ site.baseurl }}{{ page.previous.url }}");
-  }
-})();
-</script>
-
-
-
 ### Principles of grammar
 
 Today, words that change forms (he brings, he brought; child, children) are thought to be irregular, but most languages (including English), began with lots of different endings for all words. Speakers changed these endings according to the role each word pays in the sentence. Most modern languages instead use word order to express this information. This is called **inflection** (from the Latin word for *flex* or *bend*, because one can bend the words in different ways to mean something different).
@@ -224,7 +196,7 @@ When memorizing a word, it’s important to remember not just what it means in E
   <button onclick="checkVerbQuiz()">Check Answers</button>
   <button onclick="resetVerbQuiz()">Reset</button>
 
-  <div id="score" data-exercise-score data-exercise-id="ch2-transitivity"></div>
+  <div id="ti-score" class="ti-score" data-exercise-score data-exercise-id="ch2-transitivity"></div>
 
   <script>
     const verbQuestions = [
@@ -284,13 +256,13 @@ When memorizing a word, it’s important to remember not just what it means in E
         }
       });
 
-      document.getElementById("score").innerHTML =
+      document.getElementById("ti-score").innerHTML =
         `Score: ${score} / ${verbQuestions.length}`;
     }
 
     function resetVerbQuiz() {
       buildVerbQuiz();
-      document.getElementById("score").innerHTML = "";
+      document.getElementById("ti-score").innerHTML = "";
     }
 
     buildVerbQuiz();
@@ -380,7 +352,7 @@ When memorizing a word, it’s important to remember not just what it means in E
 <button class="func-button" onclick="resetFuncQuiz()">Reset</button>
 
 
-<div id="func-score" data-exercise-score data-exercise-id="ch2-functions"></div>
+<div id="func-score" class="func-score" data-exercise-score data-exercise-id="ch2-functions"></div>
 
 
 
@@ -703,7 +675,7 @@ After you translate into English, translate the next sentence, which has a diffe
 <button class="trans-button" onclick="checkTransQuiz()">Check Answers</button>
 <button class="trans-button" onclick="resetTransQuiz()">Reset</button>
 
-<div id="trans-score" data-exercise-score data-exercise-id="ch2-translation"></div>
+<div id="trans-score" class="trans-score" data-exercise-score data-exercise-id="ch2-translation"></div>
 
 
 <script>
